@@ -1,7 +1,7 @@
 import time
 
 class PID:
-    def __init__(self, drone):
+    def __init__(self, drone): #
         self.pid = [1.0, 0.5, 0.3] #PID VALUES
         self.drone = drone
         self.currentX = 0

@@ -10,7 +10,7 @@ currentYaw = [0]
 
 myDrone = initializeTello()
 
-PIDcontrol = PID(myDrone)
+PIDcontrol = PID(myDrone) #
 
 PID.setDesiredPos(0, 0, 30, 0)
 
