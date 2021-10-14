@@ -1,5 +1,5 @@
-from src import utils
-from src.utils import *
+from DroneFaceRec.src import utils
+from DroneFaceRec.src.utils import *
 import cv2
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import axes3d
