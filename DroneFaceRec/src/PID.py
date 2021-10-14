@@ -28,7 +28,7 @@ class PID:
         self.currentTime = 0
         self.deltaTime = 0
 
-    def updateDesiredPos(self, X, Y, Z, Yaw):
+    def setDesiredPos(self, X, Y, Z, Yaw):
         self.desiredX = X
         self.desiredY = Y
         self.desiredZ = Z
@@ -48,6 +48,7 @@ class PID:
         self.ZprevE = self.desiredZ - self.currentZ
         self.Yawvel = self.calcPIDVel(self, self.desiredYaw - self.currentYaw, self.YawI, self.YawPrevE)
         self.YawprevE = self.desiredYaw - self.currentYaw
+        self.previousTime = self.currentTime
 
     def calcPIDVel(self, error, I, PrevE):
         D = (error-PrevE)/self.deltaTime
