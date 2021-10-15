@@ -3,6 +3,8 @@ from DroneFaceRec.src.utils import *
 from DroneFaceRec.src.PID import PID
 import time
 
+w, h = 360, 240
+
 currentX = [0]
 currentY = [0]
 currentZ = [0]
@@ -17,6 +19,10 @@ PID.setDesiredPos(0, 0, 30, 0)
 previousTime = time.time()
 
 while True:
+    myFrame = myDrone.get_frame_read()
+    myFrame = myFrame.frame
+    img = cv2.resize(myFrame, (w, h))
+
     PIDcontrol.calcVel()
     if myDrone.send_rc_control:
         myDrone.send_rc_control(PIDcontrol.Xvel,
@@ -37,3 +43,7 @@ while True:
 
     previousTime = currentTime
 
+    cv2.imshow('Image', img)
+    if (cv2.waitKey(1) & 0xFF == ord('q')):
+        myDrone.land()
+        break
