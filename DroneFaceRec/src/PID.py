@@ -28,6 +28,12 @@ class PID:
         self.currentTime = 0
         self.deltaTime = 0
 
+    def setCurrentPos(self, X, Y, Z, Yaw):
+        self.currentX = X
+        self.currentY = Y
+        self.currentZ = Z
+        self.currentYaw = Yaw
+
     def setDesiredPos(self, X, Y, Z, Yaw):
         self.desiredX = X
         self.desiredY = Y
