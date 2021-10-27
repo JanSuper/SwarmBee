@@ -17,22 +17,27 @@ myDrone = initializeTello()
 #initialise PID
 PIDcontrol = PID(myDrone) #
 
+#takeoff
+myDrone.takeoff()
+
 #set first desired position
-PID.setDesiredPos(0, 0, 30, 0)
+PIDcontrol.setDesiredPos(0, 0, 8, 0)
 
 #record current time for eulers method
 previousTime = time.time()
 
 while True:
+    print("Position:", PIDcontrol.currentX, PIDcontrol.currentY, PIDcontrol.currentZ)
+
     #Do next continuous PID calculation
     PIDcontrol.calcVel()
 
     #Send desired velocity values to the drone
     if myDrone.send_rc_control:
-        myDrone.send_rc_control(PIDcontrol.Xvel,
-                                PIDcontrol.Yvel,
-                                PIDcontrol.Zvel,
-                                PIDcontrol.Yawvel)
+        myDrone.send_rc_control(int(PIDcontrol.Xvel),
+                                int(PIDcontrol.Yvel),
+                                int(PIDcontrol.Zvel),
+                                int(PIDcontrol.Yawvel))
 
     # Use the real time speed values of the drone as it might be a bit different than the desires ones
     VelX = myDrone.get_speed_x()
@@ -50,12 +55,12 @@ while True:
     #Use eulers method to calculate now position
     #Save the new position in an array so that we can plot it to see the position of the drone in a graph
     #TODO: might also be too many points, so we might wanna change it to recording the position once every x loops
-    currentX.append(currentX[currentX.len - 1] + VelX * deltaTime)
-    currentY.append(currentY[currentY.len - 1] + VelY * deltaTime)
-    currentZ.append(currentZ[currentZ.len - 1] + VelZ * deltaTime)
+    currentX.append(currentX[len(currentX) - 1] + VelX * deltaTime)
+    currentY.append(currentY[len(currentY) - 1] + VelY * deltaTime)
+    currentZ.append(currentZ[len(currentZ) - 1] + VelZ * deltaTime)
 
     #update current real position in the PID controller
-    PID.setCurrentPos(currentX[currentX.len - 1], currentY[currentY.len - 1], currentZ[currentZ.len - 1], yaw)
+    PIDcontrol.setCurrentPos(currentX[len(currentX) - 1], currentY[len(currentY) - 1], currentZ[len(currentZ) - 1], yaw)
 
     #set previous time for next loop
     previousTime = currentTime
