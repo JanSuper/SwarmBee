@@ -1,9 +1,7 @@
-from DroneFaceRec.src import utils
-from DroneFaceRec.src.utils import *
+from DroneSwarm.src.Demo import workshop_demo_utils
+from DroneSwarm.src.Demo.workshop_demo_utils import *
 import cv2
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import axes3d
-import numpy as np
 import time
 
 velX = []
@@ -37,7 +35,7 @@ while True:
     # Step 2
     img, info = findFace(img)
     # Step 3
-    pError = utils.trackFace(myDrone, info, w, pid, pError)
+    pError = workshop_demo_utils.trackFace(myDrone, info, w, pid, pError)
     #if info[0][0] != 0:
      #   myDrone.flip_forward()
 
