@@ -1,0 +1,3 @@
+[submodule "DroneSwarm/src/Submodules/ros_comm"]
+	path = DroneSwarm/src/Submodules/ros_comm
+	url = https://github.com/ros/ros_comm.git
