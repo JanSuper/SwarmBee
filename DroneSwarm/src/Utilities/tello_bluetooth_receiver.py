@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import asyncio
-import rospy
+from ros_comm.clients.rospy.src import rospy as rospy
 from sensor_msgs.msg import LaserScan
 
 from bleak import BleakClient
