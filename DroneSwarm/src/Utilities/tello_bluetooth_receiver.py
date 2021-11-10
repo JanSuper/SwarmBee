@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
 
 import asyncio
-from ros_comm.clients.rospy.src import rospy as rospy
-from sensor_msgs.msg import LaserScan
+# from ros_comm.clients.rospy.src import rospy as rospy
+# from sensor_msgs.msg import LaserScan
 
 from bleak import BleakClient
 from bleak.exc import BleakError
 
 CHARACTERISTIC_UUID = "B5AF1711-6486-4104-8DBE-84B66CF6E1AD"
-ADDRESS = "9C:9C:1F:E1:B0:62"
+# ADDRESS = "9C:9C:1F:E1:B0:62"
+ADDRESS = '84:CC:A8:2F:E9:32'
 
 
-# ADDRESS = '84:CC:A8:2F:E9:32'
 class Package:
 
     def __init__(self, sensor_1=0, sensor_2=0, sensor_3=0) -> None:
@@ -40,11 +40,11 @@ class Connection:
         self.loop = loop
 
         self.current_package = None
-        self.scan_msg = LaserScan()
-        self.scan_msg.header.seq = -1
-        self.scan_msg.range_min = 0.04  # [m]
-        self.scan_msg.range_max = 2.00  # [m]
-        self.pub = rospy.Publisher('/tello/arduino/tof', LaserScan, queue_size=10)
+        # self.scan_msg = LaserScan()
+        # self.scan_msg.header.seq = -1
+        # self.scan_msg.range_min = 0.04  # [m]
+        # self.scan_msg.range_max = 2.00  # [m]
+        # self.pub = rospy.Publisher('/tello/arduino/tof', LaserScan, queue_size=10)
 
         self.connected = False
         self.reconnecting = False
@@ -62,15 +62,15 @@ class Connection:
 
         elif self.current_package is not None and second_package:
             self.current_package.parse_second_part(package)
-            self.scan_msg.header.seq += 1
-            self.scan_msg.header.stamp = rospy.Time.now()
-            self.scan_msg.ranges = [self.current_package.sensor_1, self.current_package.sensor_2,
-                                    self.current_package.sensor_3]
-            self.pub.publish(self.scan_msg)
+            # self.scan_msg.header.seq += 1
+            # self.scan_msg.header.stamp = rospy.Time.now()
+            print([self.current_package.sensor_1, self.current_package.sensor_2,
+                                     self.current_package.sensor_3])
+            # self.pub.publish(self.scan_msg)
             self.current_package = None
 
     def disconnect_handler(self, client):
-        rospy.logwarn("Client disconnected...")
+        # rospy.logwarn("Client disconnected...")
         self.connected = False
         self.client = None
 
@@ -80,25 +80,26 @@ class Connection:
                 try:
                     await self.connect()
                 except BleakError:
-                    rospy.logerr("Failed to establish connection...")
+                    pass
+                    # rospy.logerr("Failed to establish connection...")
             else:
-                rospy.loginfo("Create BleakClient")
+                # rospy.loginfo("Create BleakClient")
                 self.client = BleakClient(self.address, disconnected_callback=self.disconnect_handler)
 
     async def connect(self):
         if self.connected:
             return False
 
-        rospy.loginfo("Connecting...")
+        # rospy.loginfo("Connecting...")
         await self.client.connect(use_cached=False)
         self.connected = self.client.is_connected
         if self.connected:
-            rospy.loginfo("Connected...")
+            # rospy.loginfo("Connected...")
             await self.client.start_notify(self.characteristic, self.notification_handler)
             while self.connected:
                 await asyncio.sleep(1)
-        else:
-            rospy.logerr("connect() called but connection failed")
+        # else:
+            # rospy.logerr("connect() called but connection failed")
 
     async def cleanup(self):
         if self.client and self.connected:
@@ -107,7 +108,7 @@ class Connection:
 
 
 if __name__ == "__main__":
-    rospy.init_node('tello_tof_publisher')
+    # rospy.init_node('tello_tof_publisher')
     loop = asyncio.get_event_loop()
     loop.set_debug(True)
     connection = Connection(ADDRESS, CHARACTERISTIC_UUID, loop)
