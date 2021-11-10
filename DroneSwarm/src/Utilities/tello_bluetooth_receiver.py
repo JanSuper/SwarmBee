@@ -8,7 +8,7 @@ from bleak import BleakClient
 from bleak.exc import BleakError
 
 CHARACTERISTIC_UUID = "B5AF1711-6486-4104-8DBE-84B66CF6E1AD"
-# ADDRESS = "9C:9C:1F:E1:B0:62"
+
 ADDRESS = '84:CC:A8:2F:E9:32'
 
 
