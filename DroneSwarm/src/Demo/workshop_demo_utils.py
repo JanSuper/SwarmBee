@@ -1,8 +1,7 @@
-from djitellopy import Tello
 import cv2
 import numpy as np
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import axes3d
+
+from djitellopy import Tello
 
 
 def initializeTello():
@@ -49,6 +48,7 @@ def findFace(img):
         return img, [[0, 0], 0]
 
 
+# noinspection PyUnresolvedReferences
 def trackFace(myDrone, info, w, pid, pError):
     # PID
     error = info[0][0] - w // 2

@@ -13,7 +13,7 @@ pid = [0.4, 0.4, 0]
 pError = 0
 startCounter = 0  # for no Flight 1   - for flight 0
 
-#time.sleep(10)
+# time.sleep(10)
 myDrone = initializeTello()
 
 startTime = time.time()
@@ -36,8 +36,8 @@ while True:
     img, info = findFace(img)
     # Step 3
     pError = workshop_demo_utils.trackFace(myDrone, info, w, pid, pError)
-    #if info[0][0] != 0:
-     #   myDrone.flip_forward()
+    # if info[0][0] != 0:
+    #   myDrone.flip_forward()
 
     cv2.imshow('Image', img)
     if currentTime - startTime >= 80 or (cv2.waitKey(1) & 0xFF == ord('q')):

@@ -1,26 +1,24 @@
-from djitellopy import Tello
 import cv2
-import numpy as np
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import axes3d
+
+from djitellopy import tello
 
 
-def initializeTello():
-    myDrone = Tello()
-    myDrone.connect()
-    myDrone.for_back_velocity = 0
-    myDrone.left_right_velocity = 0
-    myDrone.up_down_velocity = 0
-    myDrone.yaw_velocity = 0
-    myDrone.speed = 0
-    print(myDrone.get_battery())
-    myDrone.streamoff()
-    myDrone.streamon()
-    return myDrone
+def initialize_tello():
+    my_drone = tello.Tello()
+    my_drone.connect()
+    my_drone.for_back_velocity = 0
+    my_drone.left_right_velocity = 0
+    my_drone.up_down_velocity = 0
+    my_drone.yaw_velocity = 0
+    my_drone.speed = 0
+    print("Battery Level: ", my_drone.get_battery(), "%")
+    my_drone.streamoff()
+    my_drone.streamon()
+    return my_drone
 
 
-def telloGetFrame(myDrone, w=360, h=240):
-    myFrame = myDrone.get_frame_read()
-    myFrame = myFrame.frame
-    img = cv2.resize(myFrame, (w, h))
+def tello_get_frame(my_drone, w=360, h=240):
+    my_frame: object = my_drone.get_frame_read()
+    my_frame = my_frame.frame
+    img = cv2.resize(my_frame, (w, h))
     return img

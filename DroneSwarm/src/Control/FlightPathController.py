@@ -1,53 +1,47 @@
-from DroneSwarm.src.Utilities.utils import *
-from DroneSwarm.src.Control.PID import PID
+
 import time
+import numpy as np
+import DroneSwarm.src.Utilities.KeyPressModule as kp
+from DroneSwarm.src.Control.Trapezoid import Trapezoid
+from DroneSwarm.src.Utilities.utils import *
 
-# Set camera view window size
-(w, h) = (360, 240)
+is_flying = True
 
-interval = 0.005  # 5 ms
-previous_time = 0
-
-# Create lists to save current locations to display them later
-
-currentX = [0]
-currentY = [0]
-currentZ = [0]
-
+kp.init()
 # connect to drone
-myDrone = initializeTello()
+myDrone = initialize_tello()
 
+# initialize Trapezoid controller
+trapezoid = Trapezoid()
 # takeoff
-myDrone.takeoff()
-# TODO: initialize PID when drone completes take-off and hovering
-# initialize PID
-pid = PID()
+if is_flying:
+    myDrone.takeoff()
 
-# # set first desired position
-# pid.setDesiredPos(0, 0, 0, 0)
+# set first desired position
+target = np.array([150, 200, 100, 90], dtype=int)
+trapezoid.set_target(target)
+
 # TODO: run PID on separate thread
+interval = 0.25  # 25 ms
+previous_time = time.time()
+query_time = time.time()
 while True:
     now = time.time()
     dt = now - previous_time
-    if dt >= interval:
-        print("Position: ", pid.position, "Time: ", now)
-        u = pid.calculate(dt)
+    if dt > interval:
+        u = trapezoid.calculate()
+        if kp.get_key("q"):
+            myDrone.land()
+            break
+        if kp.get_key("f"):
+            myDrone.emergency()
+            break
         # Send desired velocity values to the drone
         if myDrone.send_rc_control:
             myDrone.send_rc_control(*u)
+        # Use the real time velocities of the drone
+        y = [myDrone.get_speed_x(), myDrone.get_speed_y(), myDrone.get_speed_z(), myDrone.get_yaw()]
+        trapezoid.update_position_estimate(dt, *u)
+        print("Position: ", trapezoid.position, "Target: ", trapezoid.target, "Time: ", now - query_time, "\n",
+              "Control: ", u, "Read: ", y)
         previous_time = now
-        # Use the real time speed values of the drone as it might be a bit different than the desires ones
-        y = np.array([myDrone.get_speed_x(), myDrone.get_speed_x(), myDrone.get_speed_z(), myDrone.get_yaw()]) * dt
-        print("Control: ", u, "Read: ", y)
-        pid.update_position(*y)
-
-    # # grab frame from the drone camera and display it
-    # myFrame = myDrone.get_frame_read()
-    # myFrame = myFrame.frame
-    # img = cv2.resize(myFrame, (w, h))
-    # cv2.imshow('Image', img)
-
-    # kill the PID controller and make the drone land when you press q
-    if cv2.waitKey(1) & 0xFF == ord('q'):
-        myDrone.land()
-        break
