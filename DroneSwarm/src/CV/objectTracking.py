@@ -3,8 +3,8 @@ import cv2
 import numpy as np
 
 ######################################################################
-width = 360  # WIDTH OF THE IMAGE
-height = 240  # HEIGHT OF THE IMAGE
+width = 640  # WIDTH OF THE IMAGE
+height = 480  # HEIGHT OF THE IMAGE
 deadZone = 100
 ######################################################################
 
