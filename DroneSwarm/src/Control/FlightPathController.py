@@ -64,6 +64,6 @@ while True:
         trapezoid.update_position_estimate(dt, *u)
         print("Position: ", trapezoid.position, "Target: ", trapezoid.target, "Time: ", now - query_time, "\n",
               "Control: ", u, "Read: ", y, "Bluetooth: ", bluetooth.current_package)
-        img = tello_get_frame(myDrone)
-        cv2.imshow('Image', img)
+        # img = tello_get_frame(myDrone)
+        # cv2.imshow('Image', img)
         previous_time = now

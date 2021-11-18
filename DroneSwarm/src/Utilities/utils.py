@@ -24,9 +24,3 @@ def tello_get_frame(my_drone, w=360, h=240):
     img = cv2.resize(my_frame, (w, h))
     return img
 
-
-def tello_get_bluetooth(my_drone):
-    my_bt: object = my_drone.get_frame_read()
-    my_frame = my_frame.frame
-    img = cv2.resize(my_frame, (w, h))
-    return img

@@ -28,7 +28,7 @@ class BackgroundBluetoothSensorRead:
         # rospy.init_node('tello_tof_publisher')
         self.loop = asyncio.get_event_loop()
         self.loop.set_debug(True)
-        self.connection = Connection(ADDRESS, CHARACTERISTIC_UUID, self.loop)
+        self.connection = Connection(self.address, self.uuid, self.loop)
         #
         # try:
         #     Tello.LOGGER.debug('trying to grab video frame...')
@@ -49,7 +49,7 @@ class BackgroundBluetoothSensorRead:
         """Thread worker function to retrieve frames using PyAV
         Internal method, you normally wouldn't call this yourself.
         """
-        while not self.stopped:
+        if not self.stopped:
             try:
                 self.loop.run_until_complete(self.connection.manager())
             except KeyboardInterrupt:
@@ -57,8 +57,8 @@ class BackgroundBluetoothSensorRead:
             finally:
                 self.loop.run_until_complete(self.connection.cleanup())
             time.sleep(0.1)
-
-        self.container.close()
+        else:
+            self.container.close()
 
     def stop(self):
         """Stop the frame update worker
