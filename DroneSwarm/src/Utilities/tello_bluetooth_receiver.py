@@ -117,6 +117,7 @@ class Connection:
 
             # self.scan_msg.header.seq += 1
             # self.scan_msg.header.stamp = rospy.Time.now()
+            #
             # print([self.current_package.sensor_1, self.current_package.sensor_2,
             #        self.current_package.sensor_3])
             current_package[0] = self.current_package.sensor_1
