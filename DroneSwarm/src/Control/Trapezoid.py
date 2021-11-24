@@ -1,6 +1,6 @@
 import numpy as np
 
-MAX_SPEED = 30  # cm/s
+MAX_SPEED = 20  # cm/s
 ACCELERATION_RATE = 2  # cm/s^2
 
 

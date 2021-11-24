@@ -14,6 +14,7 @@ ADDRESS = '84:CC:A8:2F:E9:32'
 
 current_package = [0, 0, 0]
 
+
 class BackgroundBluetoothSensorRead:
     """
        This class read bluetooth values from a PacketStream in background. Use
@@ -27,7 +28,7 @@ class BackgroundBluetoothSensorRead:
         # self.value = [0,0,0]
         # rospy.init_node('tello_tof_publisher')
         self.loop = asyncio.get_event_loop()
-        self.loop.set_debug(True)
+        self.loop.set_debug(False)
         self.connection = Connection(self.address, self.uuid, self.loop)
         #
         # try:
@@ -57,15 +58,11 @@ class BackgroundBluetoothSensorRead:
             finally:
                 self.loop.run_until_complete(self.connection.cleanup())
             time.sleep(0.1)
-        else:
-            self.container.close()
 
     def stop(self):
-        """Stop the frame update worker
-        Internal method, you normally wouldn't call this yourself.
-        """
         self.stopped = True
         self.worker.join()
+
 
 class Package:
 
@@ -127,7 +124,6 @@ class Connection:
             current_package[2] = self.current_package.sensor_3
             # self.pub.publish(self.scan_msg)
             self.current_package = None
-
 
     def disconnect_handler(self, client):
         # rospy.logwarn("Client disconnected...")

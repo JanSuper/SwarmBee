@@ -6,7 +6,9 @@ from DroneSwarm.src.Control.Trapezoid import Trapezoid
 from DroneSwarm.src.Utilities.utils import *
 from DroneSwarm.src.Utilities.tello_bluetooth_receiver import BackgroundBluetoothSensorRead
 
-is_flying = False
+import threading
+
+is_flying = True
 # initialize emergency keyboard module
 kp.init()
 # connect to drone
@@ -23,30 +25,30 @@ if is_flying:
     myDrone.takeoff()
 
 # set first desired position
-target = np.array([0, 0, 0, 0], dtype=int)
+target = np.array([0, 100, 0, 0], dtype=int)
 trapezoid.set_target(target)
 
 
-# Function to check if list1 contains a value less than val
+# Function to check if all the values of list1 are greater than val
 def check_for_less(list1, val):
     # traverse in the list
     for x in list1:
         # compare with all the
         # values with value
-        if val <= x:
+        if x < val:
             return False
     return True
 
 
 # TODO: run controller on separate thread
-interval = 0.25  # 25 ms
+interval = 0.1  # 10 ms
 previous_time = time.time()
 query_time = time.time()
 while True:
     now = time.time()
     dt = now - previous_time
     if dt > interval:
-        if check_for_less(bluetooth.current_package, 0.5):
+        if check_for_less(bluetooth.current_package, 0.4):
             u = trapezoid.calculate()
         else:
             u = [0, 0, 0, 0]
@@ -66,4 +68,5 @@ while True:
               "Control: ", u, "Read: ", y, "Bluetooth: ", bluetooth.current_package)
         # img = tello_get_frame(myDrone)
         # cv2.imshow('Image', img)
+        # print("Active Thread: ", threading.activeCount())
         previous_time = now
