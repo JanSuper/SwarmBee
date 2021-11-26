@@ -14,6 +14,7 @@ class Trapezoid:
         self.target = np.zeros(4)  # target position as origin
         self.velocity = np.zeros(4, dtype=int)  # initial velocities as 0
         self.distance = np.zeros(4)  # current distance to target
+        self.is_reached = [False, False, False, False]
 
     def set_position(self, position):
         if position.shape == self.position.shape:
@@ -33,6 +34,16 @@ class Trapezoid:
         self.position[3] = temp[3]
         return self.position
 
+    # Function to check if all the values of list1 are less than val
+    def check_for_less(self, list1, val):
+        # traverse in the list
+        for x in list1:
+            # compare with all the
+            # values with value
+            if x < val:
+                return False
+        return True
+
     def set_target(self, target):
         if target.shape == self.target.shape:
             if target.dtype != np.int:
@@ -40,6 +51,9 @@ class Trapezoid:
             else:
                 self.target[:] = target[:]
                 self.distance[:] = self.target[:] - self.position[:]
+                print(self.distance.tolist())
+                if self.check_for_less(self.distance.tolist(), 10):
+                    self.is_reached[:] = False
         else:
             print("Invalid target position")
 
@@ -70,7 +84,14 @@ class Trapezoid:
                         elif self.target[i] - self.position[i] < 0:
                             self.velocity[i] = -11
                 else:
+                    self.is_reached[i] = True
                     self.velocity[i] = 0
+
+        for i in self.is_reached:
+            if not i:
+                flag = 1
+            else:
+                print('Target Reached')
 
         np.clip(self.velocity, -MAX_SPEED, MAX_SPEED)
         velocity = self.velocity.tolist()
