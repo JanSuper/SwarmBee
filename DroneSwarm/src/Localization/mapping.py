@@ -1,4 +1,6 @@
 # """custom path visualizer"""
+import math
+
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -24,8 +26,15 @@ class Plot:
         plt.pause(0.01)
         return
 
-    def addObstacle(self,xs,ys,zs):
-        self.ax.scatter(xs, ys, zs, marker='s', c="purple")
+    def addObstacle(self,xs,ys,zs,dyaw,dir,dis):
+        if dir == "l":
+            dyaw += 90
+        elif dir == "r":
+            dyaw += 270
+
+        print(dyaw)
+        radyaw = dyaw/(180)*math.pi
+        self.ax.scatter(xs+math.cos(radyaw)*dis, ys+math.sin(radyaw)*dis, zs, marker='s', c="purple")
 
     def endGraph(self):
         plt.show();
