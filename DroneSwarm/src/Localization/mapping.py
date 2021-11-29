@@ -31,8 +31,6 @@ class Plot:
             dyaw +=270
         elif dir == "r":
             dyaw += 90
-
-        print(dyaw)
         radyaw = dyaw/(180)*math.pi
         self.ax.scatter(xs+math.sin(radyaw)*dis, ys+math.cos(radyaw)*dis, zs, marker='s', c="purple")
 
