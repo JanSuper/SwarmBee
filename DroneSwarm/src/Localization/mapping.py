@@ -28,13 +28,13 @@ class Plot:
 
     def addObstacle(self,xs,ys,zs,dyaw,dir,dis):
         if dir == "l":
-            dyaw += 90
+            dyaw +=270
         elif dir == "r":
-            dyaw += 270
+            dyaw += 90
 
         print(dyaw)
         radyaw = dyaw/(180)*math.pi
-        self.ax.scatter(xs+math.cos(radyaw)*dis, ys+math.sin(radyaw)*dis, zs, marker='s', c="purple")
+        self.ax.scatter(xs+math.sin(radyaw)*dis, ys+math.cos(radyaw)*dis, zs, marker='s', c="purple")
 
     def endGraph(self):
         plt.show();
