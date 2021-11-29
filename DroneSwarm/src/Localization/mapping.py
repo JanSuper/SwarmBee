@@ -24,5 +24,8 @@ class Plot:
         plt.pause(0.01)
         return
 
+    def addObstacle(self,xs,ys,zs):
+        self.ax.scatter(xs, ys, zs, marker='s', c="purple")
+
     def endGraph(self):
         plt.show();
