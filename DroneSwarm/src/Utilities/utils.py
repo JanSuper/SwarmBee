@@ -24,3 +24,12 @@ def tello_get_frame(my_drone, w=360, h=240):
     img = cv2.resize(my_frame, (w, h))
     return img
 
+
+def check_for_less(list1, val):
+    # traverse in the list
+    for x in list1:
+        # compare with all the
+        # values with value
+        if x < val:
+            return False
+    return True

@@ -1,14 +1,42 @@
 import time
 import numpy as np
+from threading import Thread
+
 import pandas as pd
 from datetime import datetime
 import DroneSwarm.src.Utilities.KeyPressModule as kp
 from DroneSwarm.src.Control.Trapezoid import Trapezoid
 from DroneSwarm.src.Utilities.utils import *
+# from DroneSwarm.src.Utilities.tello_bluetooth_receiver import BackgroundBluetoothSensorRead
+import DroneSwarm.src.Utilities.tello_bluetooth_receiver as BTR
+
+# Function to check if all the values of list1 are greater than val
+
 from DroneSwarm.src.Utilities.tello_bluetooth_receiver import BackgroundBluetoothSensorRead
 from DroneSwarm.src.Localization.mapping import Plot
 import threading
 
+class FlightPathController(Thread):
+
+    def __init__(self):
+        Thread.__init__(self)
+        self.is_flying = True
+        # initialize emergency keyboard module
+        self.kp.init()
+        # connect to drone
+        self.self.myDrone = initialize_tello()
+        # initialize bluetooth thread
+        self.bluetooth = BTR.BackgroundBluetoothSensorRead()
+        # initialize Trapezoid controller
+        self.trapezoid = Trapezoid()
+        # it fairly takes 15 seconds to receive first distance value
+        time.sleep(5)
+        # takeoff
+        if self.is_flying:
+            self.self.myDrone.takeoff()
+        # set first desired position
+        self.target = np.array([0, 100, 0, 0], dtype=int)
+        self.trapezoid.set_target(self.target)
 is_flying = True
 # initialize emergency keyboard module
 kp.init()
@@ -43,6 +71,37 @@ def check_for_less(list1, val):
     return True
 
 
+    # TODO: run controller on separate thread
+    def run(self):
+        interval = 0.1  # 10 ms
+        previous_time = time.time()
+        query_time = time.time()
+        while self.is_flying:
+            now = time.time()
+            dt = now - previous_time
+            if dt > interval:
+                if check_for_less(self.bluetooth.current_package, 0.4):
+                    u = self.trapezoid.calculate()
+                else:
+                    u = [0, 0, 0, 0]
+                if kp.get_key("q"):
+                    self.myDrone.land()
+                    break
+                if kp.get_key("f"):
+                    self.myDrone.emergency()
+                    break
+                # Send desired velocity values to the drone
+                if self.myDrone.send_rc_control:
+                    self.myDrone.send_rc_control(*u)
+                # Use the real time velocities of the drone
+                y = [self.myDrone.get_speed_x(), self.myDrone.get_speed_y(), self.myDrone.get_speed_z(), self.myDrone.get_yaw()]
+                self.trapezoid.update_position_estimate(dt, *u)
+                print("Position: ", self.trapezoid.position, "Target: ", self.trapezoid.target, "Time: ", now - query_time, "\n",
+                      "Control: ", u, "Read: ", y, "Bluetooth: ", self.bluetooth.current_package)
+                # img = tello_get_frame(self.myDrone)
+                # cv2.imshow('Image', img)
+                # print("Active Thread: ", threading.activeCount())
+                previous_time = now
 # TODO: run controller on separate thread
 interval = 0.1  # 10 ms
 previous_time = time.time()
