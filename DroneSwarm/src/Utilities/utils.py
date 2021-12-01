@@ -15,6 +15,7 @@ def initialize_tello():
     print("Battery Level: ", my_drone.get_battery(), "%")
     my_drone.streamoff()
     my_drone.streamon()
+    my_drone.is_flying = True
     return my_drone
 
 
