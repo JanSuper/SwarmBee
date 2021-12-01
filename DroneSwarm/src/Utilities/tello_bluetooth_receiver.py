@@ -66,7 +66,7 @@ class BackgroundBluetoothSensorRead:
 
 class Package:
 
-    def __init__(self, sensor_1=0, sensor_2=0, sensor_3=0) -> None:
+    def __init__(self, sensor_1=-1, sensor_2=-1, sensor_3=-1) -> None:
         self.sensor_1 = sensor_1  # left
         self.sensor_2 = sensor_2  # front
         self.sensor_3 = sensor_3  # right
