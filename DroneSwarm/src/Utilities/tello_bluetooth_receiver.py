@@ -3,6 +3,7 @@
 import asyncio
 # from ros_comm.clients.rospy.src import rospy as rospy
 # from sensor_msgs.msg import LaserScan
+from DroneSwarm.src.Utilities.utils import *
 from threading import Thread
 from bleak import BleakClient
 from bleak.exc import BleakError
@@ -13,6 +14,9 @@ CHARACTERISTIC_UUID = "B5AF1711-6486-4104-8DBE-84B66CF6E1AD"
 ADDRESS = '84:CC:A8:2F:E9:32'
 
 current_package = [0, 0, 0]
+avg_package = [0, 0, 0]
+# Left, Middle, Right
+history = [[], [], []]
 
 
 class BackgroundBluetoothSensorRead:
@@ -117,12 +121,23 @@ class Connection:
 
             # self.scan_msg.header.seq += 1
             # self.scan_msg.header.stamp = rospy.Time.now()
-            #
-            # print([self.current_package.sensor_1, self.current_package.sensor_2,
-            #        self.current_package.sensor_3])
+
             current_package[0] = self.current_package.sensor_1
             current_package[1] = self.current_package.sensor_2
             current_package[2] = self.current_package.sensor_3
+            history[0].append(current_package[0])
+            history[1].append(current_package[1])
+            history[2].append(current_package[2])
+            norm = False
+            if len(history[0]) > 10:
+                for ls in history:
+                    ls.pop(0)
+                    norm = True
+            # print([self.current_package.sensor_1, self.current_package.sensor_2, self.current_package.sensor_3])
+            if norm:
+                if normalize(history, var_threshold=1.0, interval_threshold=5, print_out=True):
+                    avg_package = roll_average(history)
+                    print(avg_package)
             # self.pub.publish(self.scan_msg)
             self.current_package = None
 

@@ -1,5 +1,5 @@
 import cv2
-
+import statistics as stats
 from djitellopy import tello
 from DroneSwarm.src.Utilities.tello_bluetooth_receiver import BackgroundBluetoothSensorRead
 
@@ -24,3 +24,28 @@ def tello_get_frame(my_drone, w=360, h=240):
     img = cv2.resize(my_frame, (w, h))
     return img
 
+
+def normalize(list1, var_threshold=0.5, interval=(0.01, 2.1), interval_threshold=3, print_out=False):
+    flag = 0
+    var = []
+    for direction in list1:
+        for val in direction:
+            if val < interval[0] or interval[1] < val:
+                flag += 1
+        var.append(stats.variance(direction))
+
+    if max(var) > var_threshold or flag > interval_threshold:
+        if print_out:
+            print('Variances: {:.2f}'.format(var))
+            print("Measurement Rejected")
+        return False
+    else:
+        return True
+
+
+def roll_average(list1, roll=3):
+    package = []
+    for direction in list1:
+        temp = stats.mean(direction[-roll - 1:-1])
+        package.append(round(temp, 2))
+    return package

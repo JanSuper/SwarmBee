@@ -59,13 +59,16 @@ if is_flying:
             if check_for_less(bluetooth.current_package, -1.0):
                 myDrone.takeoff()
                 break
+
 pos, tar, tim, control, sensor, bt = [], [], [], [], [], []
+
+last = []*5
 # set first desired position
-target = np.array([100, 200, 0, 0], dtype=int)
+target = np.array([0, 200, 0, 0], dtype=int)
 trapezoid.set_target(target)
 
 # TODO: run controller on separate thread
-interval = 0.2  # 10 ms
+interval = 0.2  # 20 ms
 previous_time = time.time()
 query_time = time.time()
 while True:
