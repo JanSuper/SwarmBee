@@ -1,41 +1,13 @@
-# import socket
-# import time
-#
-# drone1 = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-# drone1.setsockopt(socket.SOL_SOCKET, 2, 'wlxd0374572e205'.encode())
-#
-# drone2 = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-# drone2.setsockopt(socket.SOL_SOCKET, 2, 'wlxd03745f79670'.encode())
-#
-# drone1.sendto('command'.encode(), 0, ('192.168.10.1', 8889))
-# print("1:", drone1.recvfrom(128))
-# drone2.sendto('command'.encode(), 0, ('192.168.10.1', 8889))
-# print("2:", drone2.recvfrom(128))
-#
-# drone1.sendto('takeoff'.encode(), 0, ('192.168.10.1', 8889))
-# print("1:", drone1.recvfrom(128))
-# drone2.sendto('takeoff'.encode(), 0, ('192.168.10.1', 8889))
-# print("2:", drone2.recvfrom(128))
-#
-# time.sleep(5)
-#
-# drone1.sendto('land'.encode(), 0, ('192.168.10.1', 8889))
-# print("1:", drone1.recvfrom(128))
-# drone2.sendto('land'.encode(), 0, ('192.168.10.1', 8889))
-# print("2:", drone2.recvfrom(128))
-
 # Import the necessary modules
 import socket
 import threading
 import time
 
 # IP and port of Tello
-tello_address1 = ('192.168.10.1', 8889)
-tello_address2 = ('192.168.10.1', 8889)
+tello_address = ('192.168.10.1', 8889)
 
 # IP and port of local computer
-local_address1 = ('', 9000)
-local_address2 = ('', 9000)
+local_address = ('', 9000)
 
 # Create a UDP connection that we'll send the command to
 sock1 = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -44,21 +16,30 @@ sock2 = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 sock2.setsockopt(socket.SOL_SOCKET, 25, 'wlxd03745f79670'.encode())
 
 # Bind to the local address and port
-sock1.bind(local_address1)
+sock1.bind(local_address)
+sock2.bind(local_address)
 
 
 # Send the message to Tello and allow for a delay in seconds
 def send(message, delay):
     # Try to send the message otherwise print the exception
     try:
-        sock1.sendto(message.encode(), tello_address1)
-        sock2.sendto(message.encode(), tello_address2)
+        sock1.sendto(message.encode(), tello_address)
+        busy[0] = True
+        sock2.sendto(message.encode(), tello_address)
+        busy[1] = True
         print("Sending message: " + message)
     except Exception as e:
         print("Error sending: " + str(e))
 
     # Delay for a user-defined period of time
-    time.sleep(delay)
+    # time.sleep(delay)
+    if message != "land":
+        print("Waiting...")
+        wait()
+
+
+error = [False, False]  # error[0] = drone 1's status; error[1] = drone 2's status
 
 
 # Receive the message from Tello
@@ -68,9 +49,19 @@ def receive():
         # Try to receive the message otherwise print the exception
         try:
             response, ip_address1 = sock1.recvfrom(128)
-            print("Received message from drone #1: " + response.decode(encoding='utf-8'))
+            decoded_response = response.decode(encoding='utf-8')
+            print("Received message from drone #1: " + decoded_response)
+            if decoded_response != "":
+                busy[0] = False
+                if "error" in decoded_response:
+                    error[0] = True
             response, ip_address2 = sock2.recvfrom(128)
-            print("Received message from drone #2: " + response.decode(encoding='utf-8'))
+            decoded_response = response.decode(encoding='utf-8')
+            print("Received message from drone #2: " + decoded_response)
+            if decoded_response != "":
+                busy[1] = False
+                if "error" in decoded_response:
+                    error[1] = True
         except Exception as e:
             # If there's an error close the socket and break out of the loop
             sock1.close()
@@ -80,10 +71,14 @@ def receive():
 
 
 # Create and start a listening thread that runs in the background
-# This utilizes our receive functions and will continuously monitor for incoming messages
+# This utilizes our receive function and will continuously monitor for incoming messages
 receiveThread = threading.Thread(target=receive)
 receiveThread.daemon = True
 receiveThread.start()
+
+
+def battery():
+    send("battery?", 2)
 
 
 def command():
@@ -124,9 +119,9 @@ def spin(direction, times):
     delay = rotationTime * times
 
     # Spin right (cw) or left (ccw)
-    if (direction == "right"):
+    if direction == "right":
         send("cw " + str(rotations), delay)
-    elif (direction == "left"):
+    elif direction == "left":
         send("ccw " + str(rotations), delay)
 
 
@@ -142,7 +137,38 @@ def bounce(distance, times):
         send("up " + str(distance), bounceDelay)
 
 
+busy = [False, False]  # busy[0] = drone 1's status; busy[1] = drone 2's status
+
+
+def wait():
+    while busy[0] or busy[1]:
+        pass
+    print("Continue")
+    if error[0] or error[1]:
+        stop()
+
+
+def disablestream():
+    send("streamon", 0)
+    send("streamoff", 0)
+
+
+def stop():
+    print("Killing program")
+    send("land", 0)
+    sock1.close()
+    sock2.close()
+    exit()
+
+
+# Enable SDK mode
 command()
+
+# Fetch battery status
+battery()
+
+disablestream()
+
 # Takeoff
 takeoff()
 
