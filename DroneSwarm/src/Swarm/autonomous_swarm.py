@@ -88,6 +88,7 @@ takeoff()
 
 flight()
 
-land()
+# TODO: fix problem (= land is called immediately after threads are created)
+# land()
 
-close_sockets()
+# close_sockets()
