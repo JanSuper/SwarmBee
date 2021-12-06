@@ -3,17 +3,17 @@ import math
 
 class Localiser:
     def __init__(self):
-        self.camAngle = 0
+        self.camAngle = 90
 
 
-    def calcPosWallY(self,x,y,z,r,ArUcoID):
-        #Method to calculate the position of the drone if the ArUco marker is posted on a wall parallel to the Y axis
+    def calcPosWallX(self,x,y,z,r,ArUcoID):
+        #Method to calculate the position of the drone if the ArUco marker is posted on a wall parallel to the X axis
 
 
         #TODO: implement different locations attached to ID
         Arucox = 0
-        Arucoy = 0
-        Arucoz = 0
+        Arucoy = 200
+        Arucoz = 170
         PosCof = 1
 
         xy = math.sqrt(x*x+y*y)
@@ -35,8 +35,8 @@ class Localiser:
         #calc difference in left/right between white dot and drone
         dotdroneLF = math.sin(dwa / 180 * math.pi) * dwlshz
 
-        dx = Arucox + dw
-        dy = Arucoy + (y + dotdroneLF)*PosCof
+        dx = Arucox + (x + dotdroneLF)*PosCof
+        dy = Arucoy - dw
         dz = Arucoz + y + dotdronez
         dyaw = dwa
         return [dx,dy,dz,dyaw]
