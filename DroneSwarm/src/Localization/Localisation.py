@@ -9,7 +9,18 @@ class Localiser:
     def calcPosWallX(self,x,y,z,r,ArUcoID):
         #Method to calculate the position of the drone if the ArUco marker is posted on a wall parallel to the X axis
 
-        offsetsTemp = [[0, 170], [0, 100], [154, 100], [154, 170]]
+        # for markers 0 to 3: value at index 0 is dist. from 0,0 point on x-axis
+        # for markers 4 to 7: value at index 0 is 0 for simplification of calculations
+        # for all markers:    value at index 1 is height of the marker center
+        # for markers 4 to 7: value at index 2 is distance to the corner of the walls
+        offsetsTemp = [[0, 170], [0, 100], [154, 100], [154, 170], [0, 170, 200], [0, 100, 200],
+                       [0, 100, 100], [0, 170, 100]]
+        corner_loc = -101  # corner location on x axis = -101
+
+        # for markers 4 ... 7:
+        # drone x = corner_loc + dy
+        # drone y = -dx + the marker's center's distance from the corner
+        #
 
         #TODO: implement different locations attached to ID
         Arucox = 0
@@ -42,6 +53,11 @@ class Localiser:
         dy = Arucox + (-x + dotdroneLF)*PosCof
         dz = Arucoz + y + dotdronez
         dyaw = dwa
+
+        if ArUcoID in range(4,8):
+            dx = corner_loc + dy
+            dy = offsetsTemp[ArUcoID][2] - dx
+
         return [dx,dy,dz,dyaw]
 
 
