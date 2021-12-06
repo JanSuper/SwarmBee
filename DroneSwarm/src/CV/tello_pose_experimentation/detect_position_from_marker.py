@@ -6,7 +6,7 @@ import numpy as np
 import math
 from lib.tello import Tello
 import time
-from DroneSwarm.src.Localization.Localization import Localiser
+from DroneSwarm.src.Localization.Localization_local import Localiser
 
 ### Marker positions in room ###
 

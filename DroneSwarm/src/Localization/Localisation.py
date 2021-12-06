@@ -9,11 +9,12 @@ class Localiser:
     def calcPosWallX(self,x,y,z,r,ArUcoID):
         #Method to calculate the position of the drone if the ArUco marker is posted on a wall parallel to the X axis
 
+        offsetsTemp = [[0, 170], [0, 100], [154, 100], [154, 170]]
 
         #TODO: implement different locations attached to ID
         Arucox = 0
-        Arucoy = 200
-        Arucoz = 170
+        Arucoy = offsetsTemp[ArUcoID][0]
+        Arucoz = offsetsTemp[ArUcoID][1]
         PosCof = 1
 
         xy = math.sqrt(x*x+y*y)
@@ -35,8 +36,10 @@ class Localiser:
         #calc difference in left/right between white dot and drone
         dotdroneLF = math.sin(dwa / 180 * math.pi) * dwlshz
 
-        dx = Arucox + (x + dotdroneLF)*PosCof
-        dy = Arucoy - dw
+        #dx = Arucox + (-x + dotdroneLF)*PosCof
+        #dy = Arucoy - dw
+        dx = Arucoy + dw*PosCof
+        dy = Arucox + (-x + dotdroneLF)*PosCof
         dz = Arucoz + y + dotdronez
         dyaw = dwa
         return [dx,dy,dz,dyaw]
