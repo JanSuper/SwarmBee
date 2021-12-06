@@ -6,14 +6,15 @@ import numpy as np
 import math
 from lib.tello import Tello
 import time
+from DroneSwarm.src.Localization.Localization import Localiser
 
 ### Marker positions in room ###
 
-#  0----4----1
+#  0----4----3
 #  -----------
 #  7----8----5
 #  -----------
-#  3----6----2
+#  1----6----2
 
 ### Marker 0 is the origin of coordinate system
 # distance between corners EDGE (measured from one marker's left top corner to the other's left top)
@@ -21,17 +22,33 @@ import time
 # and distance between marker 0 and 4 is EDGE/2 along x-axis; between marker 0 and 7 is EDGE/2 along y-axis etc.
 # (actual drone coordinates are taken relative to the center of the marker)
 
-EDGE = 200  # 200 cm is the distance between markers in the corners
+EDGE = 200  # 200 cm is the distance between markers in the corners on the floor
+EDGE_WALL = 150  # 150 cm is the distance between markers in the corners on the wall
 
 # Marker IDs used:
 markers = [0, 1, 2, 3, 4, 5, 6, 7, 8]
 
+# temp aruco locations on dec. 6:
+# height of marker 0 and 3 center: 170 cm
+# distance between marker centers: 154 cm (for marker 0 and 3; 1 and 2)
+# height of marker 1 and 2 center: 100 cm
+
 # x and y offset for each marker:
-offsets = [[0, 0], [EDGE, 0], [EDGE, EDGE], [0, EDGE],
+offsetsFloor = [[0, 0], [0, EDGE], [EDGE, EDGE], [EDGE, 0],
            [EDGE/2, 0], [EDGE, EDGE/2], [EDGE/2, EDGE], [0, EDGE/2], [EDGE/2, EDGE/2]]
+offsetsWall = [[0, 0], [0, EDGE_WALL], [EDGE_WALL, EDGE_WALL], [EDGE_WALL, 0],
+                [EDGE_WALL/2, 0], [EDGE_WALL, EDGE_WALL/2], [EDGE_WALL/2, EDGE_WALL],
+               [0, EDGE_WALL/2], [EDGE_WALL/2, EDGE_WALL/2]]
+# offsetsTemp = [[0, 0], [0, 60], [EDGE_WALL, 60], [EDGE_WALL, 0],
+#              [EDGE_WALL/2, 0], [EDGE_WALL, EDGE_WALL/2], [EDGE_WALL/2, EDGE_WALL],
+#              [0, EDGE_WALL/2], [EDGE_WALL/2, EDGE_WALL/2]]
+offsetsTemp = [[0, 170], [0, 100], [154, 100], [154, 170],
+               [EDGE_WALL/2, 0], [EDGE_WALL, EDGE_WALL/2], [EDGE_WALL/2, EDGE_WALL],
+               [0, EDGE_WALL/2], [EDGE_WALL/2, EDGE_WALL/2]]
 
 # Construct a Tello instance so we can communicate with it over UDP
 tello = Tello()
+drone_localizer = Localiser()
 
 # Send the command string to wake Tello up
 tello.send("command")
@@ -62,6 +79,8 @@ aruco_dict = aruco.Dictionary_get(aruco.DICT_ARUCO_ORIGINAL)
 # Font for displaying text on screen
 font = cv2.FONT_HERSHEY_SIMPLEX
 
+prev_marker = -1
+
 # Load camera calibration data
 if not os.path.exists('./tello_calibration.pckl'):
     print("Missing Tello camera calibration file: tello_calibration.pckl")
@@ -73,6 +92,8 @@ else:
     if camera_matrix is None or distortion_coefficients is None:
         print("Calibration issue. You may need to recalibrate.")
         exit()
+
+# tello.send("takeoff")
 
 while True:
 
@@ -87,10 +108,22 @@ while True:
     # Find all the aruco markers in the image
     corners, ids, _ = aruco.detectMarkers(image=gray, dictionary=aruco_dict, parameters=aruco_params, cameraMatrix=camera_matrix, distCoeff=distortion_coefficients)
 
+    marker_id = -1
+    diff_marker = False
+    x = -10000
+    y = -10000
+    z = -10000
+    drone_x = 10000
+    drone_y = 10000
+    drone_z = 10000
+
     # Detect ID specified above
     if ids is not None:
 
         found_marker = ids[0][0]
+
+        if found_marker != prev_marker:
+            diff_marker = True
 
         # Let's find one of the markers in the room (used marker ids: 0 ... 8)
         if found_marker in range(0, 9):
@@ -116,12 +149,36 @@ while True:
             # Draw black background for text
             cv2.rectangle(img_aruco, (0, 600), (800, 720), (0, 0, 0), -1)
 
+            # save previous read location if now getting position relative to a different marker
+            if diff_marker:
+                prev_x = drone_x
+                prev_y = drone_y
+                prev_z = drone_z
+
+            # marker position relative to drone
             # Display the xyz position coordinates
-            x = tvec[0] + offsets[marker_id][0]
-            y = tvec[1] + offsets[marker_id][1]
+            x = tvec[0]
+            y = tvec[1]
             z = tvec[2]
-            position = "Marker %d position: x=%4.0f y=%4.0f z=%4.0f"%(marker_id, x, y, z)
+            #position = "Marker %d position: x=%4.0f y=%4.0f z=%4.0f"%(marker_id, x, y, z)
+            #cv2.putText(frame, position, (20, 650), font, 1, (255, 255, 255), 1, cv2.LINE_AA)
+
+            # drone white dot position in relation to the marker
+            # TODO check if offsets are taken from wall or floor or temporary setup
+            drone_x = offsetsTemp[marker_id][0] - x  # with coordinating
+            drone_y = offsetsTemp[marker_id][1] - y  # with coordinating
+            drone_z = z  # for some reason height is fine without negation
+
+            position = "Drone pos. (id %d): x=%4.0f y=%4.0f z=%4.0f"%(marker_id, drone_x, drone_y, drone_z)
             cv2.putText(frame, position, (20, 650), font, 1, (255, 255, 255), 1, cv2.LINE_AA)
+
+            # check changed position difference / error when reading from a different marker in this frame
+            if diff_marker:
+                error_x = prev_x - drone_x
+                error_y = prev_y - drone_y
+                error_z = prev_z - drone_z
+                # if abs(error_x) > 10 or abs(error_y) > 10 or abs(error_z) > 10:
+                    # print("Error > 10 when switching between markers for relative position")
 
             # Create empty rotation matrix
             rotation_matrix = np.zeros(shape=(3,3))
@@ -136,6 +193,9 @@ while True:
             # Display the yaw/pitch/roll angles
             attitude2 = "Marker %d attitude: y=%4.0f p=%4.0f r=%4.0f"%(marker_id, ypr[0][0], ypr[0][1], ypr[0][2])
             cv2.putText(frame, attitude2, (20, 700), font, 1, (255, 255, 255), 1, cv2.LINE_AA)
+
+            print([x, y, z, ypr[0][1]])
+            print(drone_localizer.calcPosWallX(x, y, z, ypr[0][1], marker_id))
 
     else:
         img_aruco = frame
