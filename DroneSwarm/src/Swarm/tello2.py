@@ -3,16 +3,16 @@
 
 # coding=utf-8
 import logging
+
 import socket
 import time
 from threading import Thread
 from typing import Optional, Union, Type, Dict
 
-from .enforce_types import enforce_types
+from djitellopy.enforce_types import enforce_types
 
 import av
 import numpy as np
-
 
 threads_initialized = False
 drones: Optional[dict] = {}

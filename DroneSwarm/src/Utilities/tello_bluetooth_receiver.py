@@ -3,6 +3,7 @@
 import asyncio
 # from ros_comm.clients.rospy.src import rospy as rospy
 # from sensor_msgs.msg import LaserScan
+from DroneSwarm.src.Utilities.utils import *
 from threading import Thread
 from bleak import BleakClient
 from bleak.exc import BleakError
@@ -13,6 +14,10 @@ CHARACTERISTIC_UUID = "B5AF1711-6486-4104-8DBE-84B66CF6E1AD"
 ADDRESS = '84:CC:A8:2F:E9:32'
 
 current_package = [0, 0, 0]
+avg_package = [0, 0, 0]
+# Left, Middle, Right
+history = [[], [], []]
+
 
 class BackgroundBluetoothSensorRead:
     """
@@ -27,7 +32,7 @@ class BackgroundBluetoothSensorRead:
         # self.value = [0,0,0]
         # rospy.init_node('tello_tof_publisher')
         self.loop = asyncio.get_event_loop()
-        self.loop.set_debug(True)
+        self.loop.set_debug(False)
         self.connection = Connection(self.address, self.uuid, self.loop)
         #
         # try:
@@ -57,19 +62,15 @@ class BackgroundBluetoothSensorRead:
             finally:
                 self.loop.run_until_complete(self.connection.cleanup())
             time.sleep(0.1)
-        else:
-            self.container.close()
 
     def stop(self):
-        """Stop the frame update worker
-        Internal method, you normally wouldn't call this yourself.
-        """
         self.stopped = True
         self.worker.join()
 
+
 class Package:
 
-    def __init__(self, sensor_1=0, sensor_2=0, sensor_3=0) -> None:
+    def __init__(self, sensor_1=-1, sensor_2=-1, sensor_3=-1) -> None:
         self.sensor_1 = sensor_1  # left
         self.sensor_2 = sensor_2  # front
         self.sensor_3 = sensor_3  # right
@@ -120,14 +121,25 @@ class Connection:
 
             # self.scan_msg.header.seq += 1
             # self.scan_msg.header.stamp = rospy.Time.now()
-            # print([self.current_package.sensor_1, self.current_package.sensor_2,
-            #        self.current_package.sensor_3])
+
             current_package[0] = self.current_package.sensor_1
             current_package[1] = self.current_package.sensor_2
             current_package[2] = self.current_package.sensor_3
+            history[0].append(current_package[0])
+            history[1].append(current_package[1])
+            history[2].append(current_package[2])
+            norm = False
+            if len(history[0]) > 10:
+                for ls in history:
+                    ls.pop(0)
+                    norm = True
+            # print([self.current_package.sensor_1, self.current_package.sensor_2, self.current_package.sensor_3])
+            if norm:
+                if normalize(history, var_threshold=1.0, interval_threshold=5, print_out=True):
+                    avg_package = roll_average(history)
+                    print(avg_package)
             # self.pub.publish(self.scan_msg)
             self.current_package = None
-
 
     def disconnect_handler(self, client):
         # rospy.logwarn("Client disconnected...")
