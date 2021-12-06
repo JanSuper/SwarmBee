@@ -6,24 +6,39 @@ class Localiser:
         self.camAngle = 0
 
 
-    def calcPosWall(self,x,y,z,r,ArUcoID):
+    def calcPosWallY(self,x,y,z,r,ArUcoID):
+        #Method to calculate the position of the drone if the ArUco marker is posted on a wall parallel to the Y axis
+
+
         #TODO: implement different locations attached to ID
+        Arucox = 0
+        Arucoy = 0
+        Arucoz = 0
+        PosCof = 1
 
         xy = math.sqrt(x*x+y*y)
-        #calc distance from wall of camera sight using cosine rule
+        #calc distance between drone and white dot
         dwls = math.sqrt(z*z + xy*xy - 2*z*xy*math.cos(r/180*math.pi))
 
-        #use sinerule to calc angle between line of sight and wall
-        #might be redundant
-        sineRule = dwls/math.sin(r/180*math.pi)
-        whiteDotAngle = math.asin(dwls/sineRule)
+        #calc horizontal component of line between drone and white dot
+        dwlshz = math.cos((90-self.camAngle)/180*math.pi)*dwls
 
-        dw = math.cos(self.camAngle/180*math.pi)*dwls
+        #calc angle horizontal component and drone using r of aruco
+        dwa = 90-r
 
-        dx = 0
-        dy = 0
-        dz = 0
-        dyaw = 0
+        #calc distance between drone and wall
+        dw = math.cos(dwa / 180 * math.pi) * dwlshz
+
+        #calc difference in height between white dot and drone
+        dotdronez = math.sin((90-self.camAngle)/180*math.pi)*dwls
+
+        #calc difference in left/right between white dot and drone
+        dotdroneLF = math.sin(dwa / 180 * math.pi) * dwlshz
+
+        dx = Arucox + dw
+        dy = Arucoy + (y + dotdroneLF)*PosCof
+        dz = Arucoz + y + dotdronez
+        dyaw = dwa
         return [dx,dy,dz,dyaw]
 
 
