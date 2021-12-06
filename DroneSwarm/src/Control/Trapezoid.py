@@ -58,6 +58,7 @@ class Trapezoid:
                 print(self.distance.tolist())
                 if check_for_less(self.distance.tolist(), 10):
                     self.is_reached[:] = False
+                    self.reached = False
         else:
             print("Invalid target position")
 

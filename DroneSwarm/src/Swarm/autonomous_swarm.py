@@ -39,7 +39,7 @@ def check_error():
 
 def close_sockets():
     for drone in drones:
-        drone.close_socket()
+        drone.socket.close()
 
 
 def takeoff():

@@ -39,9 +39,6 @@ class Drone:
             self.error = True
             print("Error receiving message from drone #" + str(self.number) + ": " + str(e))
 
-    def close_socket(self):
-        self.socket.close()
-
     def update_flightpath(self, leader_flightpath):
         self.flightpath = []
         for leader_coordinate in leader_flightpath:
@@ -53,14 +50,25 @@ class Drone:
             self.flightpath.append(coordinate)
 
     def flight(self):
-        self.trapezoid.set_target(self.flightpath[0])
+        target_index = 0
+        self.trapezoid.set_target(self.flightpath[target_index])
         interval = 0.2  # 20 ms
         previous_time = time.time()
+        finished = False  # TEMPORARY VARIABLE; TODO: remove everything involving this variable when ArUco implementation is done
         while True:
             if self.trapezoid.reached:
-                self.trapezoid.set_target()
-            now = time.time()
-            dt = now - previous_time
-            if dt > interval:
-                u = self.trapezoid.calculate()
-                # TODO: send u to drone
+                if target_index < len(self.flightpath) - 1:
+                    target_index += 1
+                    self.trapezoid.set_target(self.flightpath[target_index])
+                else:
+                    # TODO: ask new flightpath from ArUco
+                    finished = True
+                    pass
+            if not finished:
+                now = time.time()
+                dt = now - previous_time
+                if dt > interval:
+                    # TODO: ask new position from ArUco and pass along to Trapezoid controller
+                    u = self.trapezoid.calculate()
+                    self.trapezoid.update_position_estimate(dt, *u)
+                    # TODO: send u to drone
