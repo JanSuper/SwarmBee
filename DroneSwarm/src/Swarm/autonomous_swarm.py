@@ -1,3 +1,4 @@
+import cv2
 import threading
 from DroneSwarm.src.Swarm.drone import Drone
 
@@ -32,9 +33,13 @@ def check_error():
     for drone in drones:
         if drone.error:
             print("An error occurred: killing program")
-            land()
-            close_sockets()
-            exit()
+            stop_program()
+
+
+def stop_program():
+    land()
+    close_sockets()
+    exit()
 
 
 def close_sockets():
@@ -56,8 +61,11 @@ def land():
 
 def update_flightpath(leader_flightpath):
     leader_drone.flightpath = leader_flightpath
+    leader_drone.trapezoid.set_target(leader_flightpath[0])
     for follower_drone in follower_drones:
         follower_drone.update_flightpath(leader_flightpath)
+    for drone in drones:
+        drone.completed_flightpath = False
 
 
 def flight():
@@ -65,6 +73,20 @@ def flight():
         thread = threading.Thread(target=drone.flight())
         thread.daemon = True
         thread.start()
+
+
+def monitor():
+    while True:
+        new_flightpath = True
+        for drone in drones:
+            if not drone.completed_flightpath:
+                new_flightpath = False
+                break
+        if new_flightpath:
+            new_leader_flightpath = leader_drone.fetch_new_flightpath()
+            update_flightpath(new_leader_flightpath)
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
 
 
 initial_positions = [[0, 0, 0, 0], [0, 0, 0, 0]]
@@ -88,7 +110,6 @@ takeoff()
 
 flight()
 
-# TODO: fix problem (= land is called immediately after threads are created)
-# land()
+monitor()
 
-# close_sockets()
+stop_program()
