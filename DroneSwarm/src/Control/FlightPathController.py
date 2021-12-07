@@ -64,7 +64,7 @@ pos, tar, tim, control, sensor, bt = [], [], [], [], [], []
 
 last = []*5
 # set first desired position
-target = np.array([0, 200, 0, 0], dtype=int)
+target = np.array([50, 50, 0, 0], dtype=int)
 trapezoid.set_target(target)
 
 # TODO: run controller on separate thread

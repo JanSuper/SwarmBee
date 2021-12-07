@@ -1,5 +1,8 @@
 import cv2
 import threading
+
+import numpy as np
+
 from DroneSwarm.src.Swarm.drone import Drone
 
 
@@ -61,7 +64,7 @@ def land():
 
 def update_flightpath(leader_flightpath):
     leader_drone.flightpath = leader_flightpath
-    leader_drone.trapezoid.set_target(leader_flightpath[0])
+    leader_drone.trapezoid.set_target(np.array(leader_flightpath[0]))
     for follower_drone in follower_drones:
         follower_drone.update_flightpath(leader_flightpath)
     for drone in drones:
@@ -83,23 +86,30 @@ def monitor():
                 new_flightpath = False
                 break
         if new_flightpath:
-            new_leader_flightpath = leader_drone.fetch_new_flightpath()
-            update_flightpath(new_leader_flightpath)
+            print("NEED NEW FLIGHTPATH")
+            # new_leader_flightpath = leader_drone.fetch_new_flightpath()
+            # update_flightpath(new_leader_flightpath)
+        check_error()
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
 
 
-initial_positions = [[0, 0, 0, 0], [0, 0, 0, 0]]
-offsets = [[0, 0, 0, 0], [0, 0, 0, 0]]
-interface_names = ['wlxd0374572e205', 'wlxd03745f79670']
-initial_leader_flightpath = [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]
+initial_positions = [[0, 0, 0, 0]]  # [100, 0, 0, 0]
+offsets = [[0, 0, 0, 0]]  # [100, 0, 0, 0]
+interface_names = ['wlxd0374572e205']  # 'wlxd03745f79670'
+initial_leader_flightpath = [[0, 50, 0, 0], [50, 50, 0, 0]]
+
+# forward = y positive
+# backward = y negative
+# left = x negative
+# right = x positive
 
 drones = []
 for i in range(len(initial_positions)):
     drones.append(Drone(i+1, initial_positions[i], offsets[i], interface_names[i]))
 no_drones = len(drones)
 leader_drone = drones[0]
-follower_drones = drones[1:]
+follower_drones = []  # drones[1:]
 update_flightpath(initial_leader_flightpath)
 
 receiveThread = threading.Thread(target=receive)

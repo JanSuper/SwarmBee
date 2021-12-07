@@ -8,14 +8,14 @@ ACCELERATION_RATE = 2  # cm/s^2
 
 # Function to check if all the values of list1 are greater than val
 # If all values are greater than val, return True else return False
-def check_for_less(list1, val):
+def check_for_greater(list1, val):
     # traverse in the list
     for x in list1:
         # compare with all the
         # values with value
-        if x < val:
-            return False
-    return True
+        if x >= val:
+            return True
+    return False
 
 
 class Trapezoid:
@@ -55,9 +55,9 @@ class Trapezoid:
             else:
                 self.target[:] = target[:]
                 self.distance[:] = self.target[:] - self.position[:]
-                print(self.distance.tolist())
-                if check_for_less(self.distance.tolist(), 10):
-                    self.is_reached[:] = False
+                # print(self.distance.tolist())
+                if check_for_greater(self.distance.tolist(), 10):
+                    self.is_reached = [False, False, False, False]
                     self.reached = False
         else:
             print("Invalid target position")
@@ -76,7 +76,7 @@ class Trapezoid:
                         self.velocity[i] = MAX_SPEED
                     elif self.target[i] - self.position[i] < 0:
                         self.velocity[i] = -MAX_SPEED
-            elif abs((self.target[i] - self.position[i])) < abs((self.distance[i] / 3)):
+            elif abs((self.target[i] - self.position[i])) <= abs((self.distance[i] / 3)):
                 if abs(self.position[i] - self.target[i]) > 10:
                     if abs(self.velocity[i]) > 11:
                         if self.target[i] - self.position[i] > 0:
@@ -91,11 +91,11 @@ class Trapezoid:
                 else:
                     self.is_reached[i] = True
                     self.velocity[i] = 0
-        print(self.is_reached)
+        # print(self.is_reached)
         if all(self.is_reached):
             self.reached = True
             print("Reached Target: %s" % self.target)
-            print('\n Enter a new target position! Current position:%s' % self.position)
+            # print('\n Enter a new target position! Current position:%s' % self.position)
 
         np.clip(self.velocity, -MAX_SPEED, MAX_SPEED)
         velocity = self.velocity.tolist()
