@@ -1,7 +1,6 @@
 # Import the necessary modules
 import socket
 import threading
-import time
 
 # IP and port of Tello
 tello_address = ('192.168.10.1', 8889)
@@ -20,8 +19,8 @@ sock1.bind(local_address)
 sock2.bind(local_address)
 
 
-# Send the message to Tello and allow for a delay in seconds
-def send(message, delay):
+# Send the message to Tello
+def send(message):
     # Try to send the message otherwise print the exception
     try:
         sock1.sendto(message.encode(), tello_address)
@@ -32,14 +31,9 @@ def send(message, delay):
     except Exception as e:
         print("Error sending: " + str(e))
 
-    # Delay for a user-defined period of time
-    # time.sleep(delay)
     if message != "land":
         print("Waiting...")
         wait()
-
-
-error = [False, False]  # error[0] = drone 1's status; error[1] = drone 2's status
 
 
 # Receive the message from Tello
@@ -64,10 +58,35 @@ def receive():
                     error[1] = True
         except Exception as e:
             # If there's an error close the socket and break out of the loop
-            sock1.close()
-            sock2.close()
             print("Error receiving: " + str(e))
+            stop()
             break
+
+
+def wait():
+    # If at least one drone is busy, wait
+    while busy[0] or busy[1]:
+        pass
+    print("Continue")
+    # If at least one drone encountered an error, stop
+    if error[0] or error[1]:
+        print("A drone encountered an error")
+        stop()
+
+
+def takeoff():
+    send("command")
+    send("battery?")
+    send("streamon")
+    send("streamoff")
+    send("takeoff")
+
+
+def stop():
+    send("land")
+    sock1.close()
+    sock2.close()
+    exit()
 
 
 # Create and start a listening thread that runs in the background
@@ -76,114 +95,14 @@ receiveThread = threading.Thread(target=receive)
 receiveThread.daemon = True
 receiveThread.start()
 
+error = [False, False]  # captures a drone's error status; error[0] = drone 1, error[1] = drone 2
+busy = [False, False]  # captures a drone's busy status; busy[0] = drone 1, busy[1] = drone 2
 
-def battery():
-    send("battery?", 2)
-
-
-def command():
-    send("command", 3)
-
-
-# Initiate command mode and takeoff
-def takeoff():
-    send("takeoff", 5)
-
-
-# Land
-def land():
-    send("land", 5)
-
-
-# Tello commands respond with an OK when successful. This means Tello recognizes
-# the command, but the instruction hasn't completed. OK is Tello saying "I got
-# the message" but not necessarily saying "I completed the command"
-# This means we need to calculate how long the spin will take before we execute the next command.
-# Based on our tests a single 360 rotation takes 7 seconds. We'll use this in our spin function to delay
-# before the next command. Your rotation time may vary. You can calculate this by
-# sending a "cw 360" or "ccw 360" command and measuring the rotation time.
-
-# 7 seconds per rotation
-rotationTime = 7
-
-
-# Spin right or left X number of times
-def spin(direction, times):
-    # One rotation is 360 degrees
-    oneRotation = 360
-
-    # Convert the number of rotations to degrees
-    rotations = oneRotation * times
-
-    # Calculate the delay to let the spin function complete
-    delay = rotationTime * times
-
-    # Spin right (cw) or left (ccw)
-    if direction == "right":
-        send("cw " + str(rotations), delay)
-    elif direction == "left":
-        send("ccw " + str(rotations), delay)
-
-
-# Use 20 cm/sec as vertical speed
-verticalSpeed = 20.0
-
-
-def bounce(distance, times):
-    bounceDelay = distance / verticalSpeed
-
-    for i in range(times):
-        send("down " + str(distance), bounceDelay)
-        send("up " + str(distance), bounceDelay)
-
-
-busy = [False, False]  # busy[0] = drone 1's status; busy[1] = drone 2's status
-
-
-def wait():
-    while busy[0] or busy[1]:
-        pass
-    print("Continue")
-    if error[0] or error[1]:
-        stop()
-
-
-def disablestream():
-    send("streamon", 0)
-    send("streamoff", 0)
-
-
-def stop():
-    print("Killing program")
-    send("land", 0)
-    sock1.close()
-    sock2.close()
-    exit()
-
-
-# Enable SDK mode
-command()
-
-# Fetch battery status
-battery()
-
-disablestream()
-
-# Takeoff
 takeoff()
 
-# Spin right 2 times
-spin("right", 2)
+# list of commands to be executed one by one; currently describes flying in a square
+list_of_commands = ['forward 50', 'cw 90', 'forward 50', 'cw 90', 'forward 50', 'cw 90', 'forward 50', 'cw 90']
+for command in list_of_commands:
+    send(command)
 
-# Bounce up and down 60 cm and repeat 3 times
-bounce(60, 3)
-
-# Spin left 3 times
-spin("left", 3)
-
-# Land
-land()
-
-# Close the socket
-sock1.close()
-sock2.close()
+stop()

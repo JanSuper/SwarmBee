@@ -1,9 +1,7 @@
-import cv2
 import threading
-
 import numpy as np
-
 from DroneSwarm.src.Swarm.drone import Drone
+import DroneSwarm.src.Utilities.KeyPressModule as kp
 
 
 def send(message):
@@ -40,7 +38,7 @@ def check_error():
 
 
 def stop_program():
-    land()
+    send("land")
     close_sockets()
     exit()
 
@@ -56,10 +54,6 @@ def takeoff():
     send("streamon")
     send("streamoff")
     send("takeoff")
-
-
-def land():
-    send("land")
 
 
 def update_flightpath(leader_flightpath):
@@ -90,9 +84,21 @@ def monitor():
             # new_leader_flightpath = leader_drone.fetch_new_flightpath()
             # update_flightpath(new_leader_flightpath)
         check_error()
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
 
+
+def force_land():
+    kp.init()
+    while True:
+        if kp.get_key("q"):
+            for drone in drones:
+                drone.completed_flightpath = True
+                drone.send("rc 0 0 0 0")
+            stop_program()
+
+
+receiveThread = threading.Thread(target=force_land)
+receiveThread.daemon = True
+receiveThread.start()
 
 initial_positions = [[0, 0, 0, 0]]  # [100, 0, 0, 0]
 offsets = [[0, 0, 0, 0]]  # [100, 0, 0, 0]
@@ -112,6 +118,11 @@ leader_drone = drones[0]
 follower_drones = []  # drones[1:]
 update_flightpath(initial_leader_flightpath)
 
+print(f"Number of drones = {no_drones}")
+for drone in drones:
+    print(f"Drone #{drone.number}: initial position = {drone.trapezoid.position}; offset = {drone.offset}; flightpath ="
+          f"{drone.flightpath}")
+
 receiveThread = threading.Thread(target=receive)
 receiveThread.daemon = True
 receiveThread.start()
@@ -121,5 +132,3 @@ takeoff()
 flight()
 
 monitor()
-
-stop_program()
