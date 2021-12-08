@@ -10,12 +10,15 @@ ACCELERATION_RATE = 2  # cm/s^2
 # If all values are greater than val, return True else return False
 def check_for_greater(list1, val):
     # traverse in the list
+    i_s = [True, True, True, True]
+    i = 0
     for x in list1:
         # compare with all the
         # values with value
         if x >= val:
-            return True
-    return False
+            i_s[i] = False
+        i += 1
+    return i_s
 
 
 class Trapezoid:
@@ -56,8 +59,8 @@ class Trapezoid:
                 self.target[:] = target[:]
                 self.distance[:] = self.target[:] - self.position[:]
                 # print(self.distance.tolist())
-                if check_for_greater(self.distance.tolist(), 10):
-                    self.is_reached = [False, False, False, False]
+                self.is_reached = check_for_greater(self.distance.tolist(), 10)
+                if any(self.is_reached):
                     self.reached = False
         else:
             print("Invalid target position")

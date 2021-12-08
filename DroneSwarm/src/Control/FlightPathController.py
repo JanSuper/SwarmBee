@@ -5,7 +5,7 @@ from datetime import datetime
 import DroneSwarm.src.Utilities.KeyPressModule as kp
 from DroneSwarm.src.Control.Trapezoid import Trapezoid
 from DroneSwarm.src.Utilities.utils import *
-from DroneSwarm.src.Utilities.tello_bluetooth_receiver import BackgroundBluetoothSensorRead
+from DroneSwarm.src.Utilities.tello_bluetooth_receiver import BackgroundBluetoothSensorRead, accept
 from DroneSwarm.src.Localization.mapping import Plot
 import threading
 
@@ -51,34 +51,54 @@ def check_for_interval(list1, lower, upper):
 
 # takeoff
 if is_flying:
-    if check_for_less(bluetooth.current_package, -1.0):
+    if check_for_less(bluetooth.current_package, 0.001):
         myDrone.takeoff()
     else:
         while True:
             time.sleep(1)
-            if check_for_less(bluetooth.current_package, -1.0):
+            if check_for_less(bluetooth.current_package, 0.001):
                 myDrone.takeoff()
                 break
 
 pos, tar, tim, control, sensor, bt = [], [], [], [], [], []
 
-last = []*5
 # set first desired position
-target = np.array([50, 50, 0, 0], dtype=int)
+target = np.array([-75, 150, 60, 0], dtype=int)
 trapezoid.set_target(target)
-
+bt_threshold = 0.01
 # TODO: run controller on separate thread
-interval = 0.2  # 20 ms
+interval = 0.1  # 20 ms
 previous_time = time.time()
 query_time = time.time()
 while True:
     now = time.time()
     dt = now - previous_time
     if dt > interval:
-        if check_for_interval(bluetooth.current_package, 0.0, 0.31):
-            u = trapezoid.calculate()
+        blind = False
+        if not bluetooth.acceptL:
+            if check_for_interval(bluetooth.current_package[1:2], 0.0, bt_threshold):
+                u = trapezoid.calculate()
+            else:
+                u = [0, 0, 0, 0]
+        elif not bluetooth.acceptF:
+            if check_for_interval(bluetooth.current_package[0:2:2], 0.0, bt_threshold):
+                u = trapezoid.calculate()
+            else:
+                u = [0, 0, 0, 0]
+        elif not bluetooth.acceptR:
+            if check_for_interval(bluetooth.current_package[0:1], 0.0, bt_threshold):
+                u = trapezoid.calculate()
+            else:
+                u = [0, 0, 0, 0]
+        elif bluetooth.accept:
+            if check_for_interval(bluetooth.current_package, 0.0, bt_threshold):
+                u = trapezoid.calculate()
+            else:
+                u = [0, 0, 0, 0]
         else:
-            u = [0, 0, 0, 0]
+            # we do not have anything around and sensors are reading random values
+            blind = True
+            u = trapezoid.calculate()
         if kp.get_key("q"):
             # datetime object containing current date and time
             now1 = datetime.now()
@@ -87,7 +107,7 @@ while True:
             df = pd.DataFrame([tim, pos, tar, sensor, control, bt]).T
             df.columns = ['time', 'pos', 'target', 'sensor', 'control', 'bluetooth']
             # pd.set_option('display.max_columns', 4)
-            df.to_csv('BluetoothFlightControl.csv')
+            df.to_csv('BluetoothFlightControl2.csv')
             myDrone.land()
 
             # plot.endGraph()
@@ -103,22 +123,30 @@ while True:
         # Use the real time velocities of the drone
         y = [myDrone.get_speed_x(), myDrone.get_speed_y(), myDrone.get_speed_z(), myDrone.get_yaw()]
         trapezoid.update_position_estimate(dt, *u)
-        print("Position: ", trapezoid.position, "Target: ", trapezoid.target, "Time: ", now - query_time, "\n",
-              "Control: ", u, "Read: ", y, "Bluetooth: ", bluetooth.current_package)
+        if blind:
+            print("Position: ", trapezoid.position, "Target: ", trapezoid.target, "Time: ", now - query_time, "\n",
+                  "Control: ", u, "Read: ", y, "Bluetooth: Flying Blind")
+        else:
+            print("Position: ", trapezoid.position, "Target: ", trapezoid.target, "Time: ", now - query_time, "\n",
+                  "Control: ", u, "Read: ", y, "Bluetooth: ", bluetooth.avg_package)
         pos.append(trapezoid.position)
         tar.append(trapezoid.target)
         tim.append(now - query_time)
         control.append(u)
         sensor.append(y)
-        bt.append(bluetooth.current_package)
+        bt.append(bluetooth.avg_package)
+
         # plot.updateGraph(*u, 0)
         # img = tello_get_frame(myDrone)
         # cv2.imshow('Image', img)
         # print("Active Thread: ", threading.activeCount())
         # @TODO: Ask for new target if all target positions are reached
-        # if trapezoid.reached:
-        #     x, y, z, yaw = [int(a) for a in input("Enter x, y, z, yaw :").split(',')]
-        #     target = [x, y, z, yaw]
-        #     print("Given target position : ", target)
-        #     trapezoid.set_target(target)
+        if trapezoid.reached:
+            # x, y, z, yaw = [int(a) for a in input("Enter x, y, z, yaw :").split(',')]
+            # target = [x, y, z, yaw]
+
+            # set first desired position
+            target = np.array([75, -150, -60, 0], dtype=int)
+            print("Given target position : ", target)
+            trapezoid.set_target(target)
         previous_time = now

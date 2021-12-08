@@ -25,18 +25,26 @@ def tello_get_frame(my_drone, w=360, h=240):
     return img
 
 
-def normalize(list1, var_threshold=0.5, interval=(0.00, 2.1), interval_threshold=3, print_out=False):
+def normalize(list1, var_threshold=0.5, interval=(0.01, 2.1), interval_threshold=3, print_out=False, dir=False):
     flag = 0
     var = []
-    for direction in list1:
-        for val in direction:
+    if not dir:
+        for direction in list1:
+            for val in direction:
+                if val < interval[0] or interval[1] < val:
+                    flag += 1
+            var.append(stats.variance(direction))
+    else:
+        for val in list1:
             if val < interval[0] or interval[1] < val:
                 flag += 1
-        var.append(stats.variance(direction))
-
+        var.append(stats.variance(list1))
     if max(var) > var_threshold or flag > interval_threshold:
         if print_out:
-            print('Variances: {:.2f}, {:.2f}, {:.2f}'.format(var[0],var[1],var[2],))
+            if not dir:
+                print('Variances: {:.2f}, {:.2f}, {:.2f}'.format(var[0], var[1], var[2]))
+            else:
+                print('Variances: {:.2f}'.format(var[0]))
             print("Measurement Rejected")
         return False
     else:

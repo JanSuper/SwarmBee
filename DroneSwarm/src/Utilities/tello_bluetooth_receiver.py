@@ -3,7 +3,7 @@
 import asyncio
 # from ros_comm.clients.rospy.src import rospy as rospy
 # from sensor_msgs.msg import LaserScan
-from DroneSwarm.src.Utilities.utils import *
+from DroneSwarm.src.Utilities import utils
 from threading import Thread
 from bleak import BleakClient
 from bleak.exc import BleakError
@@ -17,6 +17,10 @@ current_package = [0, 0, 0]
 avg_package = [0, 0, 0]
 # Left, Middle, Right
 history = [[], [], []]
+accept = False
+acceptL, acceptF, acceptR = False, False, False
+var_threshold = 0.5
+interval_threshold = 15
 
 
 class BackgroundBluetoothSensorRead:
@@ -33,7 +37,12 @@ class BackgroundBluetoothSensorRead:
         # rospy.init_node('tello_tof_publisher')
         self.loop = asyncio.get_event_loop()
         self.loop.set_debug(False)
-        self.connection = Connection(self.address, self.uuid, self.loop)
+        self.connection = Connection(self.address, self.uuid, self.loop, self)  # TODO
+        self.accept = accept
+        self.acceptL = acceptL
+        self.acceptF = acceptF
+        self.acceptR = acceptR
+        self.avg_package = avg_package
         #
         # try:
         #     Tello.LOGGER.debug('trying to grab video frame...')
@@ -89,7 +98,7 @@ class Package:
 
 class Connection:
 
-    def __init__(self, address, characteristic, loop) -> None:
+    def __init__(self, address, characteristic, loop, sensorRead) -> None:  # TODO
         self.address = address
         self.characteristic = characteristic
         self.client = None
@@ -104,6 +113,7 @@ class Connection:
 
         self.connected = False
         self.reconnecting = False
+        self.sensorRead = sensorRead
 
     def notification_handler(self, sender, data):
         package = int.from_bytes(data, byteorder='little', signed=False)
@@ -135,9 +145,21 @@ class Connection:
                     norm = True
             # print([self.current_package.sensor_1, self.current_package.sensor_2, self.current_package.sensor_3])
             if norm:
-                if normalize(history, var_threshold=1.0, interval_threshold=5, print_out=True):
-                    avg_package = roll_average(history)
-                    print(avg_package)
+                self.sensorRead.accept = utils.normalize(history, var_threshold=var_threshold,
+                                                         interval_threshold=interval_threshold, print_out=True)
+                self.sensorRead.acceptL = utils.normalize(history[0], var_threshold=var_threshold,
+                                                          interval_threshold=interval_threshold, print_out=True,
+                                                          dir=True)
+                self.sensorRead.acceptF = utils.normalize(history[1], var_threshold=var_threshold,
+                                                          interval_threshold=interval_threshold, print_out=True,
+                                                          dir=True)
+                self.sensorRead.acceptR = utils.normalize(history[2], var_threshold=var_threshold,
+                                                          interval_threshold=interval_threshold, print_out=True,
+                                                          dir=True)
+
+                if self.sensorRead.accept:
+                    self.sensorRead.avg_package = utils.roll_average(history)
+                    # print(self.sensorRead.avg_package)
             # self.pub.publish(self.scan_msg)
             self.current_package = None
 
