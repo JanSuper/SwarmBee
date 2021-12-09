@@ -5,8 +5,8 @@ As the modules have not been merged yet, there is no single file that runs every
 
 Instead you can run each module individually:
 1. Flight path controller: control/FlightPathController.py
-2. ArUco: CV/tello_pose_experimentation/detect_position_from_marker.py
-3. Swarm: Swarm/simple_swarm.py
+2. ArUco detection: CV/tello_pose_experimentation/detect_position_from_marker.py
+3. Swarm flight: Swarm/simple_swarm.py
 
 To change the target position of the flight path controller, the numpy array on line 66 in 'control/FlightPathController.py' must be edited. The format is [x, y, z, yaw].
 
