@@ -1,4 +1,4 @@
-# from djitellopy
+# from djitellopy module: https://github.com/damiafuentes/DJITelloPy.git
 
 import time
 from threading import Thread
