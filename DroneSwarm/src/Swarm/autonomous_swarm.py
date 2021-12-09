@@ -1,4 +1,5 @@
-# This file uses TerryKim's code as a base. Source: http://tellopilots.com/threads/tello-drone-swarm.288/post-7007
+# This file uses DroneBlocks' UDP send-receiver example code as a base
+# Source: https://github.com/dbaldwin/DroneBlocks-Tello-Python/blob/master/lesson3-udp-send-receive/UDPSendReceive.py
 
 import threading
 import numpy as np
