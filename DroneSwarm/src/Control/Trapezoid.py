@@ -57,7 +57,7 @@ class Trapezoid:
                 print("Target position must be an integer")
             else:
                 self.target[:] = target[:]
-                self.distance[:] = self.target[:] - self.position[:]
+                self.distance[:] = abs(self.target[:] - self.position[:])
                 # print(self.distance.tolist())
                 self.is_reached = check_for_greater(self.distance.tolist(), 10)
                 if any(self.is_reached):
@@ -80,7 +80,7 @@ class Trapezoid:
                     elif self.target[i] - self.position[i] < 0:
                         self.velocity[i] = -MAX_SPEED
             elif abs((self.target[i] - self.position[i])) <= abs((self.distance[i] / 3)):
-                if abs(self.position[i] - self.target[i]) > 10:
+                if abs(self.position[i] - self.target[i]) > 3:
                     if abs(self.velocity[i]) > 11:
                         if self.target[i] - self.position[i] > 0:
                             self.velocity[i] -= ACCELERATION_RATE
