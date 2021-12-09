@@ -100,10 +100,10 @@ receiveThread = threading.Thread(target=force_land)
 receiveThread.daemon = True
 receiveThread.start()
 
-initial_positions = [[0, 0, 0, 0]]  # [100, 0, 0, 0]
-offsets = [[0, 0, 0, 0]]  # [100, 0, 0, 0]
-interface_names = ['wlxd0374572e205']  # 'wlxd03745f79670'
-initial_leader_flightpath = [[0, 50, 0, 0], [50, 50, 0, 0]]
+initial_positions = [[0, 0, 0, 0], [0, 0, 0, 0]]
+offsets = [[0, 0, 0, 0], [0, 0, 0, 0]]
+interface_names = ['wlxd03745f79670', 'wlxd0374572e205']
+initial_leader_flightpath = [[0, 50, 0, 0], [50, 50, 0, 0], [50, 0, 0, 0], [0, 0, 0, 0]]
 
 # forward = y positive
 # backward = y negative
@@ -115,7 +115,7 @@ for i in range(len(initial_positions)):
     drones.append(Drone(i+1, initial_positions[i], offsets[i], interface_names[i]))
 no_drones = len(drones)
 leader_drone = drones[0]
-follower_drones = []  # drones[1:]
+follower_drones = drones[1:]
 update_flightpath(initial_leader_flightpath)
 
 print(f"Number of drones = {no_drones}")
