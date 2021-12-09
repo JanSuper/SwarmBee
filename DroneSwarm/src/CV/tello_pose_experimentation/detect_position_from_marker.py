@@ -9,6 +9,7 @@ import cv2.aruco as aruco
 import os
 import pickle
 import numpy as np
+import pandas as pd
 import math
 
 from DroneSwarm.src.Localization.mapping import Plot
@@ -16,7 +17,7 @@ from lib.tello import Tello
 import time
 from DroneSwarm.src.Localization.Localisation import Localiser
 
-### Marker positions in room ###
+### Marker positions in room (floor configuration)###
 
 #  0----4----3
 #  -----------
@@ -24,7 +25,7 @@ from DroneSwarm.src.Localization.Localisation import Localiser
 #  -----------
 #  1----6----2
 
-### Marker 0 is the origin of coordinate system
+# Marker 0 is the origin of coordinate system for
 # distance between corners EDGE (measured from one marker's left top corner to the other's left top)
 # so distance between marker 0 and 1 is EDGE along x-axis; between marker 0 and 3 is EDGE along y-axis etc.
 # and distance between marker 0 and 4 is EDGE/2 along x-axis; between marker 0 and 7 is EDGE/2 along y-axis etc.
@@ -73,7 +74,7 @@ tello.send("streamon")
 # tello.send("ccw 90")
 
 # Get Tello stream
-cap = cv2.VideoCapture('udp://0.0.0.0:11111')  # 0.0.0.0:11111 or 127.0.0.1:11111
+cap = cv2.VideoCapture('udp://127.0.0.1:11111')  # 0.0.0.0:11111 or 127.0.0.1:11111
 
 #cap = cv2.VideoCapture('./utils/20191219-104330.avi') # Tello video from stream
 
@@ -105,6 +106,12 @@ else:
         exit()
 
 # tello.send("takeoff")
+
+# for saving received locations in csv
+x_list = []
+y_list = []
+z_list = []
+yaw_list = []
 
 def arloop():
     while True:
@@ -209,6 +216,10 @@ def arloop():
                 print([x, y, z, ypr[0][1]])
                 [dx,dy,dz,dyaw] = drone_localizer.calcPosWallX(x, y, z, ypr[0][1], marker_id)
                 print([dx,dy,dz,dyaw])
+                x_list.append(dx)
+                y_list.append(dy)
+                z_list.append(dz)
+                yaw_list.append(dyaw)
 
                 # Display drone's position in space, and yaw relative to recognized marker
                 position = "Drone pos. (id %d): x=%4.0f y=%4.0f z=%4.0f yaw=%4.0f"%(marker_id, dx, dy, dz, dyaw)
@@ -228,6 +239,9 @@ def arloop():
         key = cv2.waitKey(1) & 0xFF
 
         if key == ord('q'):
+            dict_to_csv = {'x': x_list, 'y': y_list, 'z': z_list, 'yaw': yaw_list}
+            df = pd.DataFrame(dict_to_csv)
+            df.to_csv('locations.csv')
             break
 
         if key == ord(' '):
@@ -239,8 +253,8 @@ def arloop():
 receiveThread = threading.Thread(target=arloop())
 receiveThread.daemon = True
 receiveThread.start()
-
-tello.send("takeoff")
-tello.send("up 70")
-tello.send("up 50")
-tello.send("ccw 90")
+#
+# tello.send("takeoff")
+# tello.send("up 70")
+# tello.send("up 50")
+# tello.send("ccw 90")
