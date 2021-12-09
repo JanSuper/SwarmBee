@@ -1,7 +1,8 @@
 from DroneSwarm.src.Utilities.utils import *
 import cv2
 import numpy as np
-
+## resource
+## https://github.com/murtazahassan/Tello-Object-Tracking
 ######################################################################
 width = 640  # WIDTH OF THE IMAGE
 height = 480  # HEIGHT OF THE IMAGE
