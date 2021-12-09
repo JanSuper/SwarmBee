@@ -1,3 +1,5 @@
+# This file uses TerryKim's code as a base. Source: http://tellopilots.com/threads/tello-drone-swarm.288/post-7007
+
 # Import the necessary modules
 import socket
 import threading

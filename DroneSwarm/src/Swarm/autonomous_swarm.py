@@ -1,3 +1,5 @@
+# This file uses TerryKim's code as a base. Source: http://tellopilots.com/threads/tello-drone-swarm.288/post-7007
+
 import threading
 import numpy as np
 from DroneSwarm.src.Swarm.drone import Drone
