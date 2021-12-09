@@ -1,3 +1,7 @@
+# code based on DroneBlocks-Tello-Python-OpenCV-ArUco-Markers project:
+# https://github.com/dbaldwin/DroneBlocks-Tello-Python-OpenCV-ArUco-Markers.git
+# this script is a modified version of the "6_display_marker_attitude.py" file
+
 import threading
 
 import cv2
@@ -155,13 +159,14 @@ def arloop():
                 img_aruco = aruco.drawAxis(img_aruco, camera_matrix, distortion_coefficients, rvec, tvec, marker_length)
 
                 # Draw black background for text
-                cv2.rectangle(img_aruco, (0, 600), (800, 720), (0, 0, 0), -1)
+                cv2.rectangle(img_aruco, (0, 600), (875, 720), (0, 0, 0), -1)
 
                 # save previous read location if now getting position relative to a different marker
-                if diff_marker:
-                    prev_x = drone_x
-                    prev_y = drone_y
-                    prev_z = drone_z
+                # NOT USING THIS PART FOR LOCALIZATION
+                # if diff_marker:
+                    # prev_x = drone_x
+                    # prev_y = drone_y
+                    # prev_z = drone_z
 
                 # marker position relative to drone
                 # Display the xyz position coordinates
@@ -172,19 +177,22 @@ def arloop():
                 #cv2.putText(frame, position, (20, 650), font, 1, (255, 255, 255), 1, cv2.LINE_AA)
 
                 # drone white dot position in relation to the marker
-                # TODO check if offsets are taken from wall or floor or temporary setup
-                drone_x = offsetsTemp[marker_id][0] - x  # with coordinating
-                drone_y = offsetsTemp[marker_id][1] - y  # with coordinating
-                drone_z = z  # for some reason height is fine without negation
+                # check if offsets are taken from wall or floor or temporary setup
+                # NOT USING THIS PART FOR LOCALIZATION
+                # drone_x = offsetsTemp[marker_id][0] - x  # with coordinating
+                # drone_y = offsetsTemp[marker_id][1] - y  # with coordinating
+                # drone_z = z  # for some reason height is fine without negation
 
-                position = "Drone pos. (id %d): x=%4.0f y=%4.0f z=%4.0f"%(marker_id, drone_x, drone_y, drone_z)
-                cv2.putText(frame, position, (20, 650), font, 1, (255, 255, 255), 1, cv2.LINE_AA)
+
+                # position = "Drone pos. (id %d): x=%4.0f y=%4.0f z=%4.0f"%(marker_id, drone_x, drone_y, drone_z)
+                # cv2.putText(frame, position, (20, 650), font, 1, (255, 255, 255), 1, cv2.LINE_AA)
 
                 # check changed position difference / error when reading from a different marker in this frame
-                if diff_marker:
-                    error_x = prev_x - drone_x
-                    error_y = prev_y - drone_y
-                    error_z = prev_z - drone_z
+                # NOT USING THIS PART FOR LOCALIZATION
+                # if diff_marker:
+                    # error_x = prev_x - drone_x
+                    # error_y = prev_y - drone_y
+                    # error_z = prev_z - drone_z
                     # if abs(error_x) > 10 or abs(error_y) > 10 or abs(error_z) > 10:
                         # print("Error > 10 when switching between markers for relative position")
 
@@ -198,13 +206,18 @@ def arloop():
                 # We are most concerned with rotation around pitch axis which translates to Tello's yaw
                 ypr = cv2.RQDecomp3x3(rotation_matrix)
 
+                print([x, y, z, ypr[0][1]])
+                [dx,dy,dz,dyaw] = drone_localizer.calcPosWallX(x, y, z, ypr[0][1], marker_id)
+                print([dx,dy,dz,dyaw])
+
+                # Display drone's position in space, and yaw relative to recognized marker
+                position = "Drone pos. (id %d): x=%4.0f y=%4.0f z=%4.0f yaw=%4.0f"%(marker_id, dx, dy, dz, dyaw)
+                cv2.putText(frame, position, (20, 650), font, 1, (255, 255, 255), 1, cv2.LINE_AA)
+                # TODO do we need to display marker attidude ?
                 # Display the yaw/pitch/roll angles
                 attitude2 = "Marker %d attitude: y=%4.0f p=%4.0f r=%4.0f"%(marker_id, ypr[0][0], ypr[0][1], ypr[0][2])
                 cv2.putText(frame, attitude2, (20, 700), font, 1, (255, 255, 255), 1, cv2.LINE_AA)
 
-                print([x, y, z, ypr[0][1]])
-                [dx,dy,dz,dyaw] = drone_localizer.calcPosWallX(x, y, z, ypr[0][1], marker_id)
-                print([dx,dy,dz,dyaw])
                 # plot.updateGraph(dx, dy, dz, dyaw, 0)
 
         else:

@@ -18,7 +18,6 @@ threads_initialized = False
 drones: Optional[dict] = {}
 client_socket: socket.socket
 
-
 @enforce_types
 class Tello:
     """Python wrapper to interact with the Ryze Tello drone using the official Tello api.
