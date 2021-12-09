@@ -1,3 +1,6 @@
+# code based on DroneBlocks-Tello-Python-OpenCV-ArUco-Markers project:
+# https://github.com/dbaldwin/DroneBlocks-Tello-Python-OpenCV-ArUco-Markers.git
+
 # 1. Power up Tello
 # 2. Connect to Tello network
 # 3. Run this script with Python

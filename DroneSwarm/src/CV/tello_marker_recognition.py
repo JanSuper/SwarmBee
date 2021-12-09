@@ -1,3 +1,6 @@
+# code based on DroneBlocks-Tello-Python-OpenCV-ArUco-Markers project:
+# https://github.com/dbaldwin/DroneBlocks-Tello-Python-OpenCV-ArUco-Markers.git
+
 import numpy as np
 import cv2
 import time
