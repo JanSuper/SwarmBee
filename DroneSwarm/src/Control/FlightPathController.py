@@ -28,6 +28,18 @@ def check_for_interval(list1, lower, upper):
     return True
 
 
+# calculate the angular velocity given the
+def calculate_angular_velocity(speed, clock_wise, radius):
+    control = np.zeros(4, dtype=int)
+    if clock_wise:
+        control[0] = -1 * speed
+    else:
+        control[0] = speed
+    angular_velocity = -1 * round(control[0]/radius)
+    control[3] = angular_velocity
+    return control
+
+
 class FlightPathController:
 
     def __init__(self, drone, initial_target=np.zeros(4)):
@@ -47,7 +59,7 @@ class FlightPathController:
         print("The drone is in a safe location. Please stay clear of the drone.")
         time.sleep(10)
 
-    def fly(self):
+    def fly_trapezoid(self):
         bt_threshold = 0.01
         interval = 0.1  # 100 ms
         previous_time = time.time()
@@ -81,3 +93,14 @@ class FlightPathController:
                     # we do not have anything around and sensors are reading random values
                     u = self.trapezoid.calculate()
                 self.drone.send_rc_command(u)
+
+    def fly_circle(self, radius=100, speed=20, clock_wise=True):
+        while True:
+            # TODO check sensor read with threshold to see if we have to stop
+            # if distance_check()
+            control = calculate_angular_velocity(speed, clock_wise, radius)
+            self.drone.send_rc(control)
+
+
+    # TODO make bluetooth threshold check into a function so other functions can make easy call
+    # def distance_check(self):
