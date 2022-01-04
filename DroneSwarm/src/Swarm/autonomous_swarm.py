@@ -61,7 +61,7 @@ def takeoff():
 
 def update_flightpath(leader_flightpath):
     leader_drone.flightpath = leader_flightpath
-    leader_drone.trapezoid.set_target(np.array(leader_flightpath[0]))
+    leader_drone.controller.trapezoid.set_target(np.array(leader_flightpath[0]))
     for follower_drone in follower_drones:
         follower_drone.update_flightpath(leader_flightpath)
     for drone in drones:
@@ -99,12 +99,12 @@ def force_land():
             stop_program()
 
 
+# Setup emergency landing
 receiveThread = threading.Thread(target=force_land)
 receiveThread.daemon = True
 receiveThread.start()
 
-initial_positions = [[0, 0, 0, 0], [0, 0, 0, 0]]
-offsets = [[0, 0, 0, 0], [0, 0, 0, 0]]
+# Initialize the swarm
 interface_names = ['wlxd03745f79670', 'wlxd0374572e205']
 initial_leader_flightpath = [[0, 50, 0, 0], [50, 50, 0, 0], [50, 0, 0, 0], [0, 0, 0, 0]]
 

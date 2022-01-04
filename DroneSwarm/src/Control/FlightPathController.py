@@ -1,28 +1,7 @@
 import time
 import numpy as np
-import pandas as pd
-from datetime import datetime
-import DroneSwarm.src.Utilities.KeyPressModule as kp
 from DroneSwarm.src.Control.Trapezoid import Trapezoid
-from DroneSwarm.src.Utilities.utils import *
-from DroneSwarm.src.Utilities.tello_bluetooth_receiver import BackgroundBluetoothSensorRead, accept
-from DroneSwarm.src.Localization.mapping import Plot
-import threading
-
-is_flying = True
-# initialize emergency keyboard module
-kp.init()
-# plot values in Realtime
-# plot = Plot()
-# connect to drone
-myDrone = initialize_tello()
-# initialize bluetooth thread
-bluetooth = BackgroundBluetoothSensorRead()
-bluetooth.start()
-# initialize Trapezoid controller
-trapezoid = Trapezoid()
-# it fairly takes 3 seconds to receive first distance value from bluetooth
-time.sleep(3)
+from DroneSwarm.src.Utilities.tello_bluetooth_receiver import BackgroundBluetoothSensorRead
 
 
 # Function to check if all the values of list1 are greater than val
@@ -37,7 +16,7 @@ def check_for_less(list1, val):
     return True
 
 
-# Function to check if there exists a value of list1 are in interval (lower,upper)
+# Function to check if there exists a value of list1 in interval (lower,upper)
 # If there exists a value within interval return True, else return False.
 def check_for_interval(list1, lower, upper):
     # traverse in the list
@@ -49,104 +28,56 @@ def check_for_interval(list1, lower, upper):
     return True
 
 
-# takeoff
-if is_flying:
-    if check_for_less(bluetooth.current_package, 0.001):
-        myDrone.takeoff()
-    else:
+class FlightPathController:
+
+    def __init__(self, drone, initial_target=np.zeros(4)):
+        self.drone = drone
+        self.bluetooth = BackgroundBluetoothSensorRead()
+        self.bluetooth.start()
+        self.trapezoid = Trapezoid()
+        initial_position = np.zeros(4)  # TODO: Fetch initial_position from first ArUco frame
+        self.trapezoid.set_position(initial_position)
+        self.trapezoid.set_target(initial_target + initial_position)
+        time.sleep(3)  # Required for bluetooth values to start coming in
+
+    def safe_for_takeoff(self):
+        while not check_for_less(self.bluetooth.current_package, 0.001):
+            print("Error: the drone is not in a safe location. Please move the drone.")
+            time.sleep(5)
+        print("The drone is in a safe location. Please stay clear of the drone.")
+        time.sleep(10)
+
+    def fly(self):
+        bt_threshold = 0.01
+        interval = 0.1  # 100 ms
+        previous_time = time.time()
         while True:
-            time.sleep(1)
-            if check_for_less(bluetooth.current_package, 0.001):
-                myDrone.takeoff()
-                break
-
-pos, tar, tim, control, sensor, bt = [], [], [], [], [], []
-
-# set first desired position
-target = np.array([-75, 150, 60, 0], dtype=int)
-trapezoid.set_target(target)
-bt_threshold = 0.01
-# TODO: run controller on separate thread
-interval = 0.1  # 20 ms
-previous_time = time.time()
-query_time = time.time()
-while True:
-    now = time.time()
-    dt = now - previous_time
-    if dt > interval:
-        blind = False
-        if not bluetooth.acceptL:
-            if check_for_interval(bluetooth.current_package[1:2], 0.0, bt_threshold):
-                u = trapezoid.calculate()
-            else:
-                u = [0, 0, 0, 0]
-        elif not bluetooth.acceptF:
-            if check_for_interval(bluetooth.current_package[0:2:2], 0.0, bt_threshold):
-                u = trapezoid.calculate()
-            else:
-                u = [0, 0, 0, 0]
-        elif not bluetooth.acceptR:
-            if check_for_interval(bluetooth.current_package[0:1], 0.0, bt_threshold):
-                u = trapezoid.calculate()
-            else:
-                u = [0, 0, 0, 0]
-        elif bluetooth.accept:
-            if check_for_interval(bluetooth.current_package, 0.0, bt_threshold):
-                u = trapezoid.calculate()
-            else:
-                u = [0, 0, 0, 0]
-        else:
-            # we do not have anything around and sensors are reading random values
-            blind = True
-            u = trapezoid.calculate()
-        if kp.get_key("q"):
-            # datetime object containing current date and time
-            now1 = datetime.now()
-            # dd/mm/YY H:M:S
-            dt_string = now1.strftime("%d/%m/%Y %H:%M:%S")
-            df = pd.DataFrame([tim, pos, tar, sensor, control, bt]).T
-            df.columns = ['time', 'pos', 'target', 'sensor', 'control', 'bluetooth']
-            # pd.set_option('display.max_columns', 4)
-            df.to_csv('BluetoothFlightControl2.csv')
-            myDrone.land()
-
-            # plot.endGraph()
-            break
-        if kp.get_key("f"):
-            myDrone.emergency()
-            # plot.endGraph()
-            break
-        # Send desired velocity values to the drone
-        # if myDrone.send_rc_control:
-        #     myDrone.send_rc_control(*u)
-        myDrone.send_rc_control(*u)
-        # Use the real time velocities of the drone
-        y = [myDrone.get_speed_x(), myDrone.get_speed_y(), myDrone.get_speed_z(), myDrone.get_yaw()]
-        trapezoid.update_position_estimate(dt, *u)
-        if blind:
-            print("Position: ", trapezoid.position, "Target: ", trapezoid.target, "Time: ", now - query_time, "\n",
-                  "Control: ", u, "Read: ", y, "Bluetooth: Flying Blind")
-        else:
-            print("Position: ", trapezoid.position, "Target: ", trapezoid.target, "Time: ", now - query_time, "\n",
-                  "Control: ", u, "Read: ", y, "Bluetooth: ", bluetooth.avg_package)
-        pos.append(trapezoid.position)
-        tar.append(trapezoid.target)
-        tim.append(now - query_time)
-        control.append(u)
-        sensor.append(y)
-        bt.append(bluetooth.avg_package)
-
-        # plot.updateGraph(*u, 0)
-        # img = tello_get_frame(myDrone)
-        # cv2.imshow('Image', img)
-        # print("Active Thread: ", threading.activeCount())
-        # @TODO: Ask for new target if all target positions are reached
-        if trapezoid.reached:
-            # x, y, z, yaw = [int(a) for a in input("Enter x, y, z, yaw :").split(',')]
-            # target = [x, y, z, yaw]
-
-            # set first desired position
-            target = np.array([75, -150, -60, 0], dtype=int)
-            print("Given target position : ", target)
-            trapezoid.set_target(target)
-        previous_time = now
+            now = time.time()
+            dt = now - previous_time
+            if dt > interval:
+                # TODO: Update Trapezoid's position with ArUco
+                self.trapezoid.set_position(np.zeros(4))
+                if not self.bluetooth.acceptL:
+                    if check_for_interval(self.bluetooth.current_package[1:2], 0.0, bt_threshold):
+                        u = self.trapezoid.calculate()
+                    else:
+                        u = [0, 0, 0, 0]
+                elif not self.bluetooth.acceptF:
+                    if check_for_interval(self.bluetooth.current_package[0:2:2], 0.0, bt_threshold):
+                        u = self.trapezoid.calculate()
+                    else:
+                        u = [0, 0, 0, 0]
+                elif not self.bluetooth.acceptR:
+                    if check_for_interval(self.bluetooth.current_package[0:1], 0.0, bt_threshold):
+                        u = self.trapezoid.calculate()
+                    else:
+                        u = [0, 0, 0, 0]
+                elif self.bluetooth.accept:
+                    if check_for_interval(self.bluetooth.current_package, 0.0, bt_threshold):
+                        u = self.trapezoid.calculate()
+                    else:
+                        u = [0, 0, 0, 0]
+                else:
+                    # we do not have anything around and sensors are reading random values
+                    u = self.trapezoid.calculate()
+                self.drone.send_rc_command(u)

@@ -2,17 +2,16 @@ import socket
 import time
 import numpy as np
 
-from DroneSwarm.src.Control.Trapezoid import Trapezoid
+from DroneSwarm.src.Control.FlightPathController import FlightPathController
 
 
 class Drone:
 
-    def __init__(self, number, initial_position, offset, interface_name):
+    def __init__(self, number, interface_name):
         self.number = number
-        self.trapezoid = Trapezoid()
-        self.trapezoid.set_position(np.array(initial_position))
-        self.offset = offset
+        self.controller = FlightPathController(self)
         self.flightpath = []
+        self.offset = []
         self.completed_flightpath = False
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.socket.setsockopt(socket.SOL_SOCKET, 25, interface_name.encode())
@@ -28,6 +27,19 @@ class Drone:
         except ValueError as e:
             self.error = True
             print("Error sending \"" + message + "\" to drone #" + str(self.number) + ": " + str(e))
+
+    def send_rc(self, u):
+        tmp_u = []
+        for vel in u:
+            tmp_u.append(max(-100, min(100, vel)))
+        u = tmp_u
+        command = f"rc {u[0]} {u[1]} {u[2]} {u[3]}"
+        print(f"Drone #{self.number} remote control: " + command)
+        try:
+            self.socket.sendto(command.encode(), ('192.168.10.1', 8889))
+        except ValueError as e:
+            self.error = True
+            print("Error sending \"" + command + "\" to drone #" + str(self.number) + ": " + str(e))
 
     def receive(self):
         try:
@@ -51,7 +63,7 @@ class Drone:
             coordinate[2] = leader_coordinate[2] + self.offset[2]
             coordinate[3] = leader_coordinate[3] + self.offset[3]
             self.flightpath.append(coordinate)
-        self.trapezoid.set_target(np.array(self.flightpath[0]))
+        self.controller.trapezoid.set_target(np.array(self.flightpath[0]))
 
     def flight(self):
         target_index = 0
@@ -82,18 +94,3 @@ class Drone:
     def fetch_new_flightpath(self):
         # TODO: fetch new flightpath from ArUco
         return None
-
-    def send_rc_command(self, u):
-        if time.time() - self.last_rc_control_timestamp > 0.001:
-            self.last_rc_control_timestamp = time.time()
-            tmp_u = []
-            for vel in u:
-                tmp_u.append(max(-100, min(100, vel)))
-            u = tmp_u
-            command = f"rc {u[0]} {u[1]} {u[2]} {u[3]}"
-            print("Sending command: " + command)
-            try:
-                self.socket.sendto(command.encode(), ('192.168.10.1', 8889))
-            except ValueError:
-                self.error = True
-                print("Error sending velocities to drone")
