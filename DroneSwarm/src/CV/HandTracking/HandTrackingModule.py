@@ -42,28 +42,118 @@ class handDetector():
                 self.lmList.append([id, cx, cy])
                 if draw:
                     cv2.circle(img, (cx, cy), 5, (255, 0, 255), cv2.FILLED)
-                    xmin, xmax = min(xList), max(xList)
-                    ymin, ymax = min(yList), max(yList)
-                    bbox = xmin, ymin, xmax, ymax
-                if draw:
-                    cv2.rectangle(img, (bbox[0] - 20, bbox[1] - 20),
-                                  (bbox[2] + 20, bbox[3] + 20), (0, 255, 0), 2)
+            xmin, xmax = min(xList), max(xList)
+            ymin, ymax = min(yList), max(yList)
+            bbox = xmin, ymin, xmax, ymax
+            if draw:
+                cv2.rectangle(img, (bbox[0] - 20, bbox[1] - 20),
+                              (bbox[2] + 20, bbox[3] + 20), (0, 255, 0), 2)
         return self.lmList, bbox
 
     def fingersUp(self):
         fingers = []
-        # Thumb
-        if self.lmList[self.tipIds[0]][1] > self.lmList[self.tipIds[0] - 1][1]:
-            fingers.append(1)
-        else:
-            fingers.append(0)
+
+        orientation = self.Orientation()
+        fingers.append(orientation)
+        if orientation == 0: #pointing up
+            # Thumb
+            if self.lmList[0][1] < self.lmList[1][1]:  # thumb pointing right
+                if self.lmList[self.tipIds[0]][1] > self.lmList[self.tipIds[0] - 1][1]:
+                    fingers.append(2)
+                else:
+                    fingers.append(0)
+            else: # thumb pointing left
+                if self.lmList[self.tipIds[0]][1] < self.lmList[self.tipIds[0] - 1][1]:
+                    fingers.append(1)
+                else:
+                    fingers.append(0)
+                # 4 Fingers
+            for id in range(1, 5):
+                if self.lmList[self.tipIds[id]][2] < self.lmList[self.tipIds[id] - 2][2]:
+                    fingers.append(1)
+                else:
+                    fingers.append(0)
+        elif orientation == 1: #pointing left
+            # Thumb
+            if self.lmList[0][2] < self.lmList[1][2]:  # thumb pointing right
+                if self.lmList[self.tipIds[0]][2] > self.lmList[self.tipIds[0] - 1][2]:
+                    fingers.append(2)
+                else:
+                    fingers.append(0)
+            else:  # thumb pointing left
+                if self.lmList[self.tipIds[0]][2] < self.lmList[self.tipIds[0] - 1][2]:
+                    fingers.append(1)
+                else:
+                    fingers.append(0)
+                # 4 Fingers
+            for id in range(1, 5):
+                if self.lmList[self.tipIds[id]][1] < self.lmList[self.tipIds[id] - 2][1]:
+                    fingers.append(1)
+                else:
+                    fingers.append(0)
+        elif orientation == 2: #pointing down
+            # Thumb
+            if self.lmList[0][1] > self.lmList[1][1]: #thumb pointing up
+                if self.lmList[self.tipIds[0]][1] < self.lmList[self.tipIds[0] - 1][1]:
+                    fingers.append(1)
+                else:
+                    fingers.append(0)
+            else: #thumb pointing down
+                if self.lmList[self.tipIds[0]][1] > self.lmList[self.tipIds[0] - 1][1]:
+                    fingers.append(2)
+                else:
+                    fingers.append(0)
             # 4 Fingers
-        for id in range(1, 5):
-            if self.lmList[self.tipIds[id]][2] < self.lmList[self.tipIds[id] - 2][2]:
-                fingers.append(1)
-            else:
-                fingers.append(0)
+            for id in range(1, 5):
+                if self.lmList[self.tipIds[id]][2] > self.lmList[self.tipIds[id] - 2][2]:
+                    fingers.append(1)
+                else:
+                    fingers.append(0)
+        elif orientation == 3: #pointing right
+            # Thumb
+            if self.lmList[0][2] < self.lmList[1][2]:  # thumb pointing down
+                if self.lmList[self.tipIds[0]][2] > self.lmList[self.tipIds[0] - 1][2]:
+                    fingers.append(2)
+                else:
+                    fingers.append(0)
+            else:  # thumb pointing up
+                if self.lmList[self.tipIds[0]][2] < self.lmList[self.tipIds[0] - 1][2]:
+                    fingers.append(1)
+                else:
+                    fingers.append(0)
+                # 4 Fingers
+            for id in range(1, 5):
+                if self.lmList[self.tipIds[id]][1] > self.lmList[self.tipIds[id] - 2][1]:
+                    fingers.append(1)
+                else:
+                    fingers.append(0)
+
         return fingers
+
+    #Method that finds the orientation of the hand
+    def Orientation(self):
+        # 0 = pointing up
+        # 1 = pointing left
+        # 2 = pointing down
+        # 3 = pointing right
+
+        yCoorList = [self.lmList[5][2],self.lmList[9][2],self.lmList[13][2],self.lmList[17][2]]
+        ymax, ymin = max(yCoorList), min(yCoorList)
+
+        if ymin-20 < self.lmList[0][2] < ymax+20:
+            if self.lmList[0][1] < self.lmList[5][1]:
+                print("Pointing right")
+                return 3
+            else:
+                print("pointing left")
+                return 1
+        else:
+            if self.lmList[0][2] > self.lmList[5][2]:
+                print("pointing up")
+                return 0
+            else:
+                print("pointing down")
+                return 2
 
     def findDistance(self, p1, p2, img, draw=True):
         x1, y1 = self.lmList[p1][1], self.lmList[p1][2]
