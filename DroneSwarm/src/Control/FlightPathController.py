@@ -100,6 +100,7 @@ class FlightPathController:
             # if distance_check()
             control = calculate_angular_velocity(speed, clock_wise, radius)
             self.drone.send_rc(control)
+            time.sleep(0.1)
 
 
     # TODO make bluetooth threshold check into a function so other functions can make easy call
