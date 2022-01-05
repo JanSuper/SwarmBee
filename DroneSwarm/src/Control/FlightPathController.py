@@ -31,17 +31,24 @@ def check_for_interval(list1, lower, upper):
 
 class FlightPathController:
 
-    def __init__(self, drone, initial_target=np.zeros(4), bt_threshold=0.01, interval=0.1):
+    def __init__(self, drone, flightpath, bt_threshold=0.01, interval=0.1):
         self.drone = drone
+        self.flightpath = flightpath
         self.bluetooth = BackgroundBluetoothSensorRead()
         self.bt_threshold = bt_threshold
         self.interval = interval
         self.bluetooth.start()
         self.trapezoid = Trapezoid()
         self.circle = Circle()
-        initial_position = np.zeros(4)  # TODO: Fetch initial_position from first ArUco frame
-        self.trapezoid.set_position(initial_position)
-        self.trapezoid.set_target(initial_target + initial_position)
+        self.initial_position = np.zeros(4)  # TODO: Fetch initial_position from first ArUco frame
+        self.trapezoid.set_position(self.initial_position)
+        if len(flightpath) > 0:
+            initial_target = self.initial_position + self.flightpath.pop(0)
+            self.completed_flightpath = False
+        else:
+            initial_target = self.initial_position
+            self.completed_flightpath = True
+        self.trapezoid.set_target(initial_target)
         time.sleep(3)  # Required for bluetooth values to start coming in
 
     def safe_for_takeoff(self):
@@ -57,10 +64,32 @@ class FlightPathController:
             now = time.time()
             dt = now - previous_time
             if dt > self.interval:
-                # TODO: Update Trapezoid's position with ArUco
-                self.trapezoid.set_position(np.zeros(4))
-                u = self.distance_check_and_calc(self.bt_threshold, method='Trapezoid')
+                u = [0, 0, 0, 0]
+                if self.drone.leader_drone is None:
+                    if not self.completed_flightpath:
+                        if self.trapezoid.reached:
+                            if len(self.flightpath) > 0:
+                                self.trapezoid.set_target(self.initial_position + self.flightpath.pop(0))
+                            else:
+                                self.completed_flightpath = True
+                        else:
+                            self.trapezoid.set_position(np.zeros(4))  # TODO: Update Trapezoid's position with ArUco
+                            u = self.distance_check_and_calc(self.bt_threshold, method='Trapezoid')
+                else:
+                    if not (self.completed_flightpath or self.drone.leader_drone.controller.completed_flightpath):
+                        if self.trapezoid.reached:
+                            if len(self.flightpath) > 0:
+                                self.trapezoid.set_target(self.initial_position + self.flightpath.pop(0))
+                            else:
+                                self.completed_flightpath = True
+                        else:
+                            self.trapezoid.set_position(np.zeros(4))  # TODO: Update Trapezoid's position with ArUco
+                            u = self.distance_check_and_calc(self.bt_threshold, method='Trapezoid')
+                    else:
+                        if not self.completed_flightpath:
+                            self.completed_flightpath = True
                 self.drone.send_rc(u)
+                previous_time = now
 
     def fly_circle(self, radius=100, speed=20, clock_wise=True):
         previous_time = time.time()
