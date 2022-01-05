@@ -12,6 +12,7 @@ import numpy as np
 from lib.tello import Tello
 import time
 
+
 # Marker positions on floor (each marker has 50cm in between):
 
 #   0   1   2   3   4   5   36  37  38  39  40  41
@@ -23,8 +24,6 @@ import time
 
 class ArucoLoc:
 
-    # Marker IDs used:  # should be 0 ... 71
-    # TODO MODIFY THIS !!!
     a = 50
     markers = []
     for i in range(72):
@@ -32,20 +31,19 @@ class ArucoLoc:
     print(markers)
 
     # x and y offsets for each marker:
-    # OFFSETSprev = [[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,100],[154,100],[154,0]]
 
-    OFFSETS = [[0,0], [a,0], [2*a,0], [3*a,0], [4*a,0], [5*a,0],
-               [0,a], [a,a], [2*a,a], [3*a,a], [4*a,a], [5*a,a],
-               [0,2*a], [a,2*a], [2*a,2*a], [3*a,2*a], [4*a,2*a], [5*a,2*a],
-               [0,3*a], [a,3*a], [2*a,3*a], [3*a,3*a], [4*a,3*a], [5*a,3*a],
-               [0,4*a], [a,4*a], [2*a,4*a], [3*a,4*a], [4*a,4*a], [5*a,4*a],
-               [0,5*a], [a,5*a], [2*a,5*a], [3*a,5*a], [4*a,5*a], [5*a,5*a],
-               [6*a,0], [7*a,0], [8*a,0], [9*a,0], [10*a,0], [11*a,0],
-               [6*a,a], [7*a,a], [8*a,a], [9*a,a], [10*a,a], [11*a,a],
-               [6*a,2*a], [7*a,2*a], [8*a,2*a], [9*a,2*a], [10*a,2*a], [11*a,2*a],
-               [6*a,3*a], [7*a,3*a], [8*a,3*a], [9*a,3*a], [10*a,3*a], [11*a,3*a],
-               [6*a,4*a], [7*a,4*a], [8*a,4*a], [9*a,4*a], [10*a,4*a], [11*a,4*a],
-               [6*a,5*a], [7*a,5*a], [8*a,5*a], [9*a,5*a], [10*a,5*a], [11*a,5*a]]
+    OFFSETS = [[0, 0], [a, 0], [2 * a, 0], [3 * a, 0], [4 * a, 0], [5 * a, 0],
+               [0, a], [a, a], [2 * a, a], [3 * a, a], [4 * a, a], [5 * a, a],
+               [0, 2 * a], [a, 2 * a], [2 * a, 2 * a], [3 * a, 2 * a], [4 * a, 2 * a], [5 * a, 2 * a],
+               [0, 3 * a], [a, 3 * a], [2 * a, 3 * a], [3 * a, 3 * a], [4 * a, 3 * a], [5 * a, 3 * a],
+               [0, 4 * a], [a, 4 * a], [2 * a, 4 * a], [3 * a, 4 * a], [4 * a, 4 * a], [5 * a, 4 * a],
+               [0, 5 * a], [a, 5 * a], [2 * a, 5 * a], [3 * a, 5 * a], [4 * a, 5 * a], [5 * a, 5 * a],
+               [6 * a, 0], [7 * a, 0], [8 * a, 0], [9 * a, 0], [10 * a, 0], [11 * a, 0],
+               [6 * a, a], [7 * a, a], [8 * a, a], [9 * a, a], [10 * a, a], [11 * a, a],
+               [6 * a, 2 * a], [7 * a, 2 * a], [8 * a, 2 * a], [9 * a, 2 * a], [10 * a, 2 * a], [11 * a, 2 * a],
+               [6 * a, 3 * a], [7 * a, 3 * a], [8 * a, 3 * a], [9 * a, 3 * a], [10 * a, 3 * a], [11 * a, 3 * a],
+               [6 * a, 4 * a], [7 * a, 4 * a], [8 * a, 4 * a], [9 * a, 4 * a], [10 * a, 4 * a], [11 * a, 4 * a],
+               [6 * a, 5 * a], [7 * a, 5 * a], [8 * a, 5 * a], [9 * a, 5 * a], [10 * a, 5 * a], [11 * a, 5 * a]]
 
     # Specify marker length and params
     marker_length = 18
@@ -77,29 +75,22 @@ class ArucoLoc:
                 print("Calibration issue. You may need to recalibrate.")
                 exit()
 
-        # Send the command string to wake Tello up
-        self.tello.send("command")
-
-        # Delay
-        time.sleep(1)
-
-        # Initialize the video stream which will start sending to port 11111
-        self.tello.send("streamoff")
-        self.tello.send("streamon")
-
-    # def prep_for_aruco(self):
-    #
-    #     # Send the command string to wake Tello up
-    #     self.tello.send("command")
-    #
-    #     # Delay
-    #     time.sleep(1)
-    #
-    #     # Initialize the video stream which will start sending to port 11111
-    #     self.tello.send("streamoff")
-    #     self.tello.send("streamon")
+        # # Send the command string to wake Tello up
+        # self.tello.send("command")
+        #
+        # # Delay
+        # time.sleep(1)
+        #
+        # # Initialize the video stream which will start sending to port 11111
+        # self.tello.send("streamoff")
+        # self.tello.send("streamon")
 
     def aruco_loop(self):
+
+        drone_x = 0
+        drone_y = 0
+        drone_z = 0
+        yaw = 0
 
         while True:
 
@@ -170,10 +161,12 @@ class ArucoLoc:
 
                     # Display drone's position in space, and yaw relative to recognized marker
                     # position = "Drone pos. (id %d): x=%4.0f y=%4.0f z=%4.0f yaw=%4.0f"%(marker_id, dx, dy, dz, dyaw)
-                    position = "Drone pos. (id %d): x=%4.0f y=%4.0f z=%4.0f"%(marker_id, drone_x, drone_y, drone_z)
+                    position = "Drone pos. (id %d): x=%4.0f y=%4.0f z=%4.0f" % (marker_id, drone_x, drone_y, drone_z)
                     cv2.putText(frame, position, (20, 650), ArucoLoc.font, 1, (255, 255, 255), 1, cv2.LINE_AA)
                     # Display the yaw/pitch/roll angles
-                    attitude2 = "Marker %d attitude: y=%4.0f p=%4.0f r=%4.0f"%(marker_id, ypr[0][0], ypr[0][1], ypr[0][2])
+                    yaw = ypr[0][2]
+                    attitude2 = "Marker %d attitude: y=%4.0f p=%4.0f r=%4.0f" % (
+                    marker_id, ypr[0][0], ypr[0][1], ypr[0][2])
                     cv2.putText(frame, attitude2, (20, 690), ArucoLoc.font, 1, (255, 255, 255), 1, cv2.LINE_AA)
 
             else:
@@ -190,6 +183,8 @@ class ArucoLoc:
                 file_path = os.getcwd()
                 file_name = time.strftime("%Y%m%d-%H%M%S")
                 cv2.imwrite(file_path + "/" + file_name + ".jpg", img_aruco)
+
+            return [drone_x, drone_y, drone_z, yaw]
 
 # # test script
 # drone = Tello()
