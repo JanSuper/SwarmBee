@@ -112,7 +112,7 @@ class ArucoLoc:
                 found_marker = ids[0][0]
 
                 # Let's find one of the markers in the room (used marker ids: 0 ... 71)
-                if found_marker in range(0, 12):  # TODO
+                if found_marker in range(0, 72):  # TODO
 
                     marker_id = found_marker
 
