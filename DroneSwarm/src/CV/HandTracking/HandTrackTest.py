@@ -48,6 +48,9 @@ while True:
 
         fingers = detector.fingersUp()
         print(fingers)
+        gesture = detector.gestureFinder()
+        cv2.putText(img, f'{gesture}', (bbox[0], bbox[3]+60), cv2.FONT_HERSHEY_COMPLEX,
+                    1, (0, 0, 255), 3)
 
 
 
