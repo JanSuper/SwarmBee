@@ -11,6 +11,7 @@ import pickle
 import numpy as np
 from lib.tello import Tello
 import time
+from threading import Thread
 
 
 # Marker positions on floor (each marker has 50cm in between):
@@ -22,8 +23,7 @@ import time
 #  24  25  26  27  28  29   60  61  62  63  64  65
 #  30  31  32  33  34  35   66  67  68  69  70  71
 
-class ArucoLoc:
-
+class ArucoLoc(Thread):
     a = 50
     markers = []
     for i in range(72):
@@ -53,10 +53,9 @@ class ArucoLoc:
     # Font for displaying text on screen
     font = cv2.FONT_HERSHEY_SIMPLEX
 
-    def __init__(self, tello):
-
-        # set Tello object
-        self.tello = tello
+    def __init__(self):
+        Thread.__init__(self)
+        self.running = True
         # Get Tello stream # TODO needs to be modified per drone
         self.cap = cv2.VideoCapture('udp://127.0.0.1:11111')  # 0.0.0.0:11111 or 127.0.0.1:11111
         # Set the camera size - must be consistent with size of calibration photos
@@ -75,25 +74,16 @@ class ArucoLoc:
                 print("Calibration issue. You may need to recalibrate.")
                 exit()
 
-        # # Send the command string to wake Tello up
-        # self.tello.send("command")
-        #
-        # # Delay
-        # time.sleep(1)
-        #
-        # # Initialize the video stream which will start sending to port 11111
-        # self.tello.send("streamoff")
-        # self.tello.send("streamon")
+        self.initial_position = None
+        self.current_position = None
 
-    def aruco_loop(self):
-
+    def run(self):
         drone_x = 0
         drone_y = 0
         drone_z = 0
         yaw = 0
 
-        while True:
-
+        while self.running:
             # Read the camera frame
             ret, frame = self.cap.read()
             img_aruco = frame
@@ -166,9 +156,11 @@ class ArucoLoc:
                     # Display the yaw/pitch/roll angles
                     yaw = ypr[0][2]
                     attitude2 = "Marker %d attitude: y=%4.0f p=%4.0f r=%4.0f" % (
-                    marker_id, ypr[0][0], ypr[0][1], ypr[0][2])
+                        marker_id, ypr[0][0], ypr[0][1], ypr[0][2])
                     cv2.putText(frame, attitude2, (20, 690), ArucoLoc.font, 1, (255, 255, 255), 1, cv2.LINE_AA)
-
+                if self.initial_position is None:
+                    self.initial_position = [drone_x, drone_y, drone_z, yaw]
+                self.current_position = [drone_x, drone_y, drone_z, yaw]
             else:
                 img_aruco = frame
 
@@ -184,12 +176,5 @@ class ArucoLoc:
                 file_name = time.strftime("%Y%m%d-%H%M%S")
                 cv2.imwrite(file_path + "/" + file_name + ".jpg", img_aruco)
 
-            return [drone_x, drone_y, drone_z, yaw]
-
-# # test script
-# drone = Tello()
-# aruco_loc = ArucoLoc(drone)
-# # aruco_loc.prep_for_aruco()
-# receiveThread = threading.Thread(target=aruco_loc.aruco_loop())
-# receiveThread.daemon = True
-# receiveThread.start()
+    def stop(self):
+        self.running = False

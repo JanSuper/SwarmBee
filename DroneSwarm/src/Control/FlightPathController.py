@@ -31,9 +31,10 @@ def check_for_interval(list1, lower, upper):
 
 class FlightPathController:
 
-    def __init__(self, drone, flightpath, bt_threshold=0.01, interval=0.1):
+    def __init__(self, drone, flightpath, offset, bt_threshold=0.01, interval=0.1):
         self.drone = drone
         self.flightpath = flightpath
+        self.offset = offset
         self.bluetooth = BackgroundBluetoothSensorRead()
         self.bt_threshold = bt_threshold
         self.interval = interval

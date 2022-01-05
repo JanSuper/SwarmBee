@@ -42,13 +42,9 @@ def check_error():
 
 def stop_program():
     send("land")
-    close_sockets()
-    exit()
-
-
-def close_sockets():
     for drone in drones:
         drone.socket.close()
+    exit()
 
 
 def takeoff():
@@ -93,9 +89,11 @@ def force_land():
     kp.init()
     while True:
         if kp.get_key("q"):
+            # Make all drones stationary
             for drone in drones:
-                drone.completed_flightpath = True
-                drone.send("rc 0 0 0 0")
+                drone.controller.completed_flightpath = True
+                drone.send_rc([0, 0, 0, 0])
+            # Stop the program
             stop_program()
 
 
@@ -105,30 +103,44 @@ receiveThread.daemon = True
 receiveThread.start()
 
 # Initialize the swarm
+initial_leader_flightpath = []
 interface_names = ['wlxd03745f79670', 'wlxd0374572e205']
-initial_leader_flightpath = [[0, 50, 0, 0], [50, 50, 0, 0], [50, 0, 0, 0], [0, 0, 0, 0]]
+follower_offsets = []
+no_drones = len(interface_names)
+drones = []
 
+# Directions:
 # forward = y positive
 # backward = y negative
 # left = x negative
 # right = x positive
 
-drones = []
-for i in range(len(initial_positions)):
-    drones.append(Drone(i+1, initial_positions[i], offsets[i], interface_names[i]))
-no_drones = len(drones)
-leader_drone = drones[0]
+# Create leader drone
+leader_drone = Drone(1, initial_leader_flightpath, [0, 0, 0, 0], interface_names[0], None)
+drones.append(leader_drone)
+
+# Wait for leader drone's initial position to be known
+while leader_drone.controller.aruco.initial_position is None:
+    pass
+initial_leader_position = leader_drone.controller.aruco.initial_position
+
+# Create follower drones
+for index in range(no_drones-1):
+    follower_offset = follower_offsets[index]
+    follower_flightpath = [initial_leader_position + follower_offset]
+    drones.append(Drone(index+2, follower_flightpath, follower_offset, interface_names[index+1], leader_drone))
 follower_drones = drones[1:]
-update_flightpath(initial_leader_flightpath)
 
 print(f"Number of drones = {no_drones}")
 for drone in drones:
-    print(f"Drone #{drone.number}: initial position = {drone.trapezoid.position}; offset = {drone.offset}; flightpath ="
-          f"{drone.flightpath}")
+    print(f"Drone #{drone.number}: initial position = {drone.controller.aruco.initial_position}; offset = "
+          f"{drone.controller.offset}; initial target ={drone.controller.flightpath[0]}")
 
+# Create thread to receive information from the drones
 receiveThread = threading.Thread(target=receive)
 receiveThread.daemon = True
 receiveThread.start()
+
 
 takeoff()
 

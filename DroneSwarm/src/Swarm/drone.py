@@ -5,15 +5,26 @@ from DroneSwarm.src.Control.FlightPathController import FlightPathController
 
 class Drone:
 
-    def __init__(self, number, flightpath, interface_name, leader_drone):
+    def __init__(self, number, flightpath, offset, interface_name, leader_drone):
         self.number = number
-        self.controller = FlightPathController(self, flightpath)
+        self.controller = FlightPathController(self, flightpath, offset)
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.socket.setsockopt(socket.SOL_SOCKET, 25, interface_name.encode())
         self.socket.bind(('', 9000))
         self.busy = False
         self.error = False
         self.leader_drone = leader_drone
+
+    def wait(self):
+        while True:
+            busy = False
+            for drone in drones:
+                if drone.busy:
+                    busy = True
+                    break
+            if not busy:
+                break
+        check_error()
 
     def send(self, message):
         try:
