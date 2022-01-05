@@ -1,6 +1,7 @@
 import time
 import numpy as np
 from DroneSwarm.src.Control.Trapezoid import Trapezoid
+from DroneSwarm.src.Control.Circle import Circle
 from DroneSwarm.src.Utilities.tello_bluetooth_receiver import BackgroundBluetoothSensorRead
 
 
@@ -28,25 +29,16 @@ def check_for_interval(list1, lower, upper):
     return True
 
 
-# calculate the angular velocity given the
-def calculate_angular_velocity(speed, clock_wise, radius):
-    control = np.zeros(4, dtype=int)
-    if clock_wise:
-        control[0] = -1 * speed
-    else:
-        control[0] = speed
-    angular_velocity = -1 * round(control[0]/radius)
-    control[3] = angular_velocity
-    return control
-
-
 class FlightPathController:
 
-    def __init__(self, drone, initial_target=np.zeros(4)):
+    def __init__(self, drone, initial_target=np.zeros(4), bt_threshold=0.01, interval=0.1):
         self.drone = drone
         self.bluetooth = BackgroundBluetoothSensorRead()
+        self.bt_threshold = bt_threshold
+        self.interval = interval
         self.bluetooth.start()
         self.trapezoid = Trapezoid()
+        self.circle = Circle()
         initial_position = np.zeros(4)  # TODO: Fetch initial_position from first ArUco frame
         self.trapezoid.set_position(initial_position)
         self.trapezoid.set_target(initial_target + initial_position)
@@ -60,48 +52,58 @@ class FlightPathController:
         time.sleep(10)
 
     def fly_trapezoid(self):
-        bt_threshold = 0.01
-        interval = 0.1  # 100 ms
         previous_time = time.time()
         while True:
             now = time.time()
             dt = now - previous_time
-            if dt > interval:
+            if dt > self.interval:
                 # TODO: Update Trapezoid's position with ArUco
                 self.trapezoid.set_position(np.zeros(4))
-                if not self.bluetooth.acceptL:
-                    if check_for_interval(self.bluetooth.current_package[1:2], 0.0, bt_threshold):
-                        u = self.trapezoid.calculate()
-                    else:
-                        u = [0, 0, 0, 0]
-                elif not self.bluetooth.acceptF:
-                    if check_for_interval(self.bluetooth.current_package[0:2:2], 0.0, bt_threshold):
-                        u = self.trapezoid.calculate()
-                    else:
-                        u = [0, 0, 0, 0]
-                elif not self.bluetooth.acceptR:
-                    if check_for_interval(self.bluetooth.current_package[0:1], 0.0, bt_threshold):
-                        u = self.trapezoid.calculate()
-                    else:
-                        u = [0, 0, 0, 0]
-                elif self.bluetooth.accept:
-                    if check_for_interval(self.bluetooth.current_package, 0.0, bt_threshold):
-                        u = self.trapezoid.calculate()
-                    else:
-                        u = [0, 0, 0, 0]
-                else:
-                    # we do not have anything around and sensors are reading random values
-                    u = self.trapezoid.calculate()
-                self.drone.send_rc_command(u)
+                u = self.distance_check_and_calc(self.bt_threshold, method='Trapezoid')
+                self.drone.send_rc(u)
 
     def fly_circle(self, radius=100, speed=20, clock_wise=True):
+        previous_time = time.time()
         while True:
-            # TODO check sensor read with threshold to see if we have to stop
-            # if distance_check()
-            control = calculate_angular_velocity(speed, clock_wise, radius)
-            self.drone.send_rc(control)
-            time.sleep(0.1)
+            now = time.time()
+            dt = now - previous_time
+            if dt > self.interval:
+                u = self.distance_check_and_calc(0.01, method='Circle')
+                self.drone.send_rc(u)
 
+    # method that checks the distance sensors for values outside 'safe range' and calculates control command
+    # method = 'Trapezoid', 'Circle'
+    def distance_check_and_calc(self, bt_threshold, method='Trapezoid'):
 
-    # TODO make bluetooth threshold check into a function so other functions can make easy call
-    # def distance_check(self):
+        if not self.bluetooth.acceptL:
+            if check_for_interval(self.bluetooth.current_package[1:2], 0.0, bt_threshold):
+                u = self.calc(method)
+            else:
+                u = [0, 0, 0, 0]
+        elif not self.bluetooth.acceptF:
+            if check_for_interval(self.bluetooth.current_package[0:2:2], 0.0, bt_threshold):
+                u = self.calc(method)
+            else:
+                u = [0, 0, 0, 0]
+        elif not self.bluetooth.acceptR:
+            if check_for_interval(self.bluetooth.current_package[0:1], 0.0, bt_threshold):
+                u = self.calc(method)
+            else:
+                u = [0, 0, 0, 0]
+        elif self.bluetooth.accept:
+            if check_for_interval(self.bluetooth.current_package, 0.0, bt_threshold):
+                u = self.calc(method)
+            else:
+                u = [0, 0, 0, 0]
+        else:
+            # we do not have anything around and sensors are reading random values
+            u = self.calc(method)
+        return u
+
+    # Switch between different flight path routines
+    def calc(self, method='Trapezoid'):
+        match method:
+            case 'Trapezoid':
+                return self.trapezoid.calculate()
+            case 'Circle':
+                return self.circle.calculate_angular_velocity()
