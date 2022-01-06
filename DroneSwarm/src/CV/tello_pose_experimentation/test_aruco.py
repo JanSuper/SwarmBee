@@ -1,59 +1,68 @@
-import socket
 import time
-from lib.tello import Tello
+import socket
+from multiprocessing import Process, Pipe
+from DroneSwarm.src.CV.tello_pose_experimentation.ArucoLoc import detect
 
-from DroneSwarm.src.CV.tello_pose_experimentation.ArucoLoc import ArucoLoc
 
-
-def send(receiver, message):
+def send(receiving_drone, message):
     try:
-        receiver.sendto(message.encode(), ('192.168.10.1', 8889))
+        receiving_drone.sendto(message.encode(), ('192.168.10.1', 8889))
     except ValueError:
         print("Error sending \"" + message + "\" to drone")
 
 
+def fetch_position(senders):
+    no_drones = len(senders)
+    initial = [True] * no_drones
+    while True:
+        for i in range(no_drones):
+            position = senders[i].recv()
+            if position is not None:
+                if initial[i]:
+                    print(f"Drone #{i+1}: {position} (initial)")
+                    initial[i] = False
+                else:
+                    print(f"Drone #{i+1}: {position}")
+
+
 drones = []
 
-drone = Tello()
-drones.append(drone)
+drone1 = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+drone1.setsockopt(socket.SOL_SOCKET, 25, 'wlxd03745f79670'.encode())
+drone1.bind(('', 9000))
+drones.append(drone1)
 
-# drone1 = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-# drone1.setsockopt(socket.SOL_SOCKET, 25, 'wlxd03745f79670'.encode())
-# drone1.bind(('', 9000))
-# drones.append(drone1)
+drone2 = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+drone2.setsockopt(socket.SOL_SOCKET, 25, 'wlxd0374572e205'.encode())
+drone2.bind(('', 9000))
+drones.append(drone2)
 
-# drone2 = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-# drone2.setsockopt(socket.SOL_SOCKET, 25, 'wlxd0374572e205'.encode())
-# drone2.bind(('', 9000))
-# drones.append(drone2)
-
-aruco_threads = []
+senders = []
+processes = []
+udp_ports = [11111, 11113]
 for drone in drones:
-    # send(drone, "command")
-    drone.send("command")
+    send(drone, "command")
     time.sleep(1)
-    # send(drone, "streamoff")
-    # send(drone, "streamon")
-    drone.send("streamoff")
-    drone.send("streamon")
-    aruco_thread = ArucoLoc()
-    aruco_thread.start()
-    aruco_threads.append(aruco_thread)
+    send(drone, "streamoff")
+    send(drone, "streamon")
 
-# for aruco_thread in aruco_threads:
-#     aruco_thread.start()
+    receiver, sender = Pipe()
+    senders.append(sender)
+    p = Process(target=detect, args=(receiver, udp_ports.pop(),))
+    processes.append(p)
 
-initial = True
-interval = 0.5
-previous_time = time.time()
-while True:
-    current_time = time.time()
-    if current_time - previous_time > interval:
-        for i in range(len(aruco_threads)):
-            aruco_thread = aruco_threads[i]
-            if aruco_thread.initial_position is not None:
-                if initial:
-                    print(f"Initial position drone #{i+1}: {aruco_thread.initial_position}")
-                    initial = False
-                print(f"Current position drone #{i+1}: {aruco_thread.current_position}")
-        previous_time = current_time
+p = Process(target=fetch_position, args=(senders,))
+processes.append(p)
+
+for process in processes:
+    process.start()
+
+# commands = ["takeoff", "forward 50", "cw 90", "forward 50", "land"]
+# sleep_values = [10, 5, 5, 5, 0]
+# for command in commands:
+#     for drone in drones:
+#         send(drone, command)
+#     time.sleep(sleep_values.pop())
+
+for process in processes:
+    process.join()
