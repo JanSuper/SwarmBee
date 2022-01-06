@@ -2,18 +2,12 @@
 # https://github.com/dbaldwin/DroneBlocks-Tello-Python-OpenCV-ArUco-Markers.git
 # this script is a modified version of the "6_display_marker_attitude.py" file
 
-import threading
-
 import cv2
 import cv2.aruco as aruco
 import os
 import pickle
 import numpy as np
-from lib.tello import Tello
 import time
-from threading import Thread
-from multiprocessing import Process, Pipe
-
 
 # Marker positions on floor (each marker has 50cm in between):
 
@@ -177,12 +171,12 @@ from multiprocessing import Process, Pipe
 #                 file_name = time.strftime("%Y%m%d-%H%M%S")
 #                 cv2.imwrite(file_path + "/" + file_name + ".jpg", img_aruco)
 
-def detect(receiver, port):
+
+def detect(receiver, port, window_number):
     a = 50
     markers = []
     for i in range(72):
         markers.append(i)
-    print(markers)
 
     # x and y offsets for each marker:
 
@@ -207,7 +201,7 @@ def detect(receiver, port):
     # Font for displaying text on screen
     font = cv2.FONT_HERSHEY_SIMPLEX
 
-    # Get Tello stream # TODO needs to be modified per drone
+    # Get Tello stream
     cap = cv2.VideoCapture('udp://127.0.0.1:' + str(port) + '?overrun_nonfatal=1&fifo_size=50000000')  # 0.0.0.0:11111 or 127.0.0.1:11111
     # Set the camera size - must be consistent with size of calibration photos
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, 960)
@@ -309,7 +303,8 @@ def detect(receiver, port):
         else:
             img_aruco = frame
 
-        cv2.imshow("Tello", img_aruco)
+        cv2.namedWindow("drone #" + str(window_number))
+        cv2.imshow("drone #" + str(window_number), img_aruco)
 
         key = cv2.waitKey(1) & 0xFF
 

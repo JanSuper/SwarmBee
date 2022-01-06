@@ -37,10 +37,12 @@ drone2.setsockopt(socket.SOL_SOCKET, 25, 'wlxd0374572e205'.encode())
 drone2.bind(('', 9000))
 drones.append(drone2)
 
+no_drones = len(drones)
 senders = []
 processes = []
 udp_ports = [11111, 11113]
-for drone in drones:
+for i in range(no_drones):
+    drone = drones[i]
     send(drone, "command")
     time.sleep(1)
     send(drone, "streamoff")
@@ -48,7 +50,7 @@ for drone in drones:
 
     receiver, sender = Pipe()
     senders.append(sender)
-    p = Process(target=detect, args=(receiver, udp_ports.pop(),))
+    p = Process(target=detect, args=(receiver, udp_ports[i], i+1, ))
     processes.append(p)
 
 p = Process(target=fetch_position, args=(senders,))
@@ -57,12 +59,12 @@ processes.append(p)
 for process in processes:
     process.start()
 
-# commands = ["takeoff", "forward 50", "cw 90", "forward 50", "land"]
-# sleep_values = [10, 5, 5, 5, 0]
-# for command in commands:
-#     for drone in drones:
-#         send(drone, command)
-#     time.sleep(sleep_values.pop())
+commands = ["takeoff", "forward 100", "cw 180", "forward 100", "cw 180", "land"]
+sleep_values = [10, 5, 5, 5, 5, 0]
+for i in range(len(commands)):
+    for drone in drones:
+        send(drone, commands[i])
+    time.sleep(sleep_values[i])
 
 for process in processes:
     process.join()
