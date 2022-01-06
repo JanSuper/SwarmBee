@@ -92,6 +92,7 @@ class FlightPathController:
                 self.drone.send_rc(u)
                 previous_time = now
 
+    # TODO add leader-follower logic to fly_circle
     def fly_circle(self, radius=100, speed=20, clock_wise=True):
         previous_time = time.time()
         while True:
