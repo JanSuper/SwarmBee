@@ -4,6 +4,8 @@ import time
 import math
 import imutils
 
+from queue import Queue
+
 
 class handDetector():
     def __init__(self, mode=False, maxHands=1, modelComplexity=1, detectionCon=0.5, trackCon=0.5):
@@ -18,6 +20,11 @@ class handDetector():
                                         self.trackCon)
         self.tipIds = [4, 8, 12, 16, 20]
         self.fingers = []
+
+        self.rectSizes = Queue(maxsize=100)
+        self.max_width, self.min_width, self.max_height, self.min_height = 0, 10000, 0, 10000
+        self.spinCommand = False
+        self.pointUp = False
 
     def findHands(self, img, draw=True):
         imgRGB = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
@@ -47,6 +54,14 @@ class handDetector():
             xmin, xmax = min(xList), max(xList)
             ymin, ymax = min(yList), max(yList)
             bbox = xmin, ymin, xmax, ymax
+            # print("bbox x width: " + str(xmax-xmin) + "  y length: " + str(ymax-ymin))
+            if self.pointUp is True:  # only save rect sizes if finger pointing up
+                self.modifyRecSizeQueue(xmax-xmin, ymax-ymin)
+            else:  # clear queue if other gestures shown and clear max min values
+                self.rectSizes = Queue(maxsize=100)
+                self.max_width, self.min_width, self.max_height, self.min_height = 0, 10000, 0, 10000
+                # print("Queue cleared")
+                # print(list(self.rectSizes.queue))
             if draw:
                 cv2.rectangle(img, (bbox[0] - 20, bbox[1] - 20),
                               (bbox[2] + 20, bbox[3] + 20), (0, 255, 0), 2)
@@ -161,22 +176,31 @@ class handDetector():
         print(self.fingers[1:])
         f = self.fingers[1:]
         if f == [0,0,0,0,0]:
+            self.pointUp = False
             return "fist"
 
         if self.fingers[0] == 0: #hand pointing up
             if f == [1,1,1,1,1] or f == [2,1,1,1,1]:
+                self.pointUp = False
                 return "stop"
             elif f == [0,1,0,0,0] or f == [1,1,0,0,0] or f == [2,1,0,0,0]:
+                self.pointUp = True
+                self.spinCommand = self.detectSpinCommand()
                 return "point up"
             elif f == [0,0,1,0,0]:
+                self.pointUp = False
                 return "offensive"
             elif f == [1,0,1,0,0]:
+                self.pointUp = False
                 return "offensive"
             elif f == [2,0,1,0,0]:
+                self.pointUp = False
                 return "offensive"
             elif f == [0,1,0,0,1]:
+                self.pointUp = False
                 return "rock"
         elif self.fingers[0] == 1: #hand pointing left
+            self.pointUp = False
             if f == [2,0,0,0,0]:
                 return "thumbs down"
             elif f == [1,0,0,0,0]:
@@ -185,8 +209,10 @@ class handDetector():
                 return "point left"
         elif self.fingers[0] == 2: #hand pointing down
             if f == [0,1,0,0,0] or f == [1,1,0,0,0] or f == [2,1,0,0,0]:
+                self.pointUp = False
                 return "pointing down"
         elif self.fingers[0] == 3: #hand pointing right
+            self.pointUp = False
             if f == [2,0,0,0,0]:
                 return "thumbs down"
             elif f == [1,0,0,0,0]:
@@ -205,6 +231,42 @@ class handDetector():
             cv2.circle(img, (cx, cy), 15, (255, 0, 255), cv2.FILLED)
         length = math.hypot(x2 - x1, y2 - y1)
         return length, img, [x1, y1, x2, y2, cx, cy]
+
+    def modifyRecSizeQueue(self, width, height):
+        if width > self.max_width:
+            self.max_width = width
+        if width < self.min_width:
+            self.min_width = width
+        if height > self.max_height:
+            self.max_height = height
+        if height < self.min_height:
+            self.min_height = height
+        if self.rectSizes.full():
+            self.rectSizes.get()
+        self.rectSizes.put([width, height])
+        diff_width = self.max_width - self.min_width
+        diff_height = self.max_height - self.min_width
+        print("Diff width: " + str(diff_width))
+        print("Diff height: " + str(diff_height))
+        if diff_width > 100 and diff_height > 200:  # activate spin command and clear queue and max min values
+            print("Activate spin command")
+            self.rectSizes = Queue(maxsize=100)
+            self.max_width, self.min_width, self.max_height, self.min_height = 0, 10000, 0, 10000
+        # print("Queue: ")
+        # print(list(self.rectSizes.queue))
+        # print(self.rectSizes.qsize())
+
+    def detectSpinCommand(self):
+        # TODO could create a command for the drone to spin around the human
+        # human moves their hand around in a circle while pointing up
+        # could detect that circular movement by looking at the rectangle size change during some time
+        # on one end of the circle diameter hand is closest to camera and rectangle is bigger
+        # on the other end of the circle diameter hand is furthest from camera and rectangle is smaller
+        # values from bbox (rec width: xmax-xmin; rec height: ymax-ymin)
+        # could save last 25? 50? values of these? and if big enough change happens while pointing up
+        # start spinning around the human and tracking
+
+        return False
 
 
 def main():
