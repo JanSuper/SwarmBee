@@ -9,12 +9,16 @@ from DroneSwarm.src.Swarm.drone import Drone
 import DroneSwarm.src.Utilities.KeyPressModule as KeyPress
 
 
+def receive():
+    while True:
+        drone.receive()
+
+
 def send_messages(messages):
-    messages_without_replies = ["land", "streamoff", "streamon"]
     for message in messages:
         print(f"Sending message: {message}")
         drone.send(message)
-        if message not in messages_without_replies:
+        if message != "land":
             while drone.busy:
                 pass
 
@@ -22,34 +26,38 @@ def send_messages(messages):
 def fetch_position():
     initial_position = True
     initial_flight = True
+    previous_time = time.time()
+    interval = 0.1
     while True:
         position = drone.sender.recv()
-        tmp = []
-        for coordinate in position:
-            tmp.append(int(coordinate))
-        position = tmp
         if position is not None:
+            marker_id = position[4]
+            position = position[:4]
+            tmp = []
+            for coordinate in position:
+                tmp.append(int(coordinate))
+            position = np.array(tmp)
             if initial_position:
-                print(f"Initial position: {position}")
+                print(f"Initial position: {position}; marker_id: {marker_id}")
                 initial_position = False
                 print("Creating controller")
-                temp_process = Process(target=drone.create_controller, args=(position, ))
-                temp_process.start()
+                drone.create_controller(position)
             else:
-                if drone.controller is not None:
-                    if initial_flight:
-                        print("Controller created")
-                        temp_process.join()
-                        initial_flight = False
-                        print("Starting flight")
-                        # fly_thread = Thread(target=drone.controller.fly_trapezoid)
-                        # fly_thread.daemon = False
-                        # fly_thread.start()
-                    else:
-                        print(f"Current position: {position}")
-                        if drone.controller.need_new_position:
-                            drone.controller.trapezoid.set_position(position)
-                            drone.controller.need_new_position = False
+                if initial_flight:
+                    print("Controller created")
+                    initial_flight = False
+                    print("Starting flight")
+                    fly_thread = Thread(target=drone.controller.fly_trapezoid)
+                    fly_thread.daemon = False
+                    fly_thread.start()
+                else:
+                    current_time = time.time()
+                    if current_time - previous_time > interval:
+                        print(f"Current position: {position}; marker_id: {marker_id}")
+                        previous_time = current_time
+                    if drone.controller.need_new_position:
+                        drone.controller.trapezoid.set_position(position)
+                        drone.controller.need_new_position = False
 
 
 def force_land():
@@ -81,13 +89,13 @@ emergencyThread = Thread(target=force_land)
 emergencyThread.daemon = True
 emergencyThread.start()
 
-drone = Drone(1, [[50, 0, 0, 0]], [0, 0, 0, 0], 'wlxd03745f79670', None, 11111)
+drone = Drone(1, [[-100, 0, 0, 0]], [0, 0, 0, 0], 'wlxd03745f79670', None, 11111)
 
-receiveThread = Thread(target=drone.receive)
+receiveThread = Thread(target=receive)
 receiveThread.daemon = False
 receiveThread.start()
 
-send_messages(["command", "streamoff", "streamon"])
+send_messages(["command", "battery?", "streamoff", "streamon", "takeoff"])
 
 p = Process(target=fetch_position)
 p.start()
