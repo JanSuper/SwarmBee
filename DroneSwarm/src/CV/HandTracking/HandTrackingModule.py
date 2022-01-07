@@ -22,7 +22,7 @@ class handDetector():
         self.fingers = []
 
         self.rectSizes = Queue(maxsize=100)
-        self.max_width, self.min_width, self.max_height, self.min_height = 0, 10000, 0, 10000
+        self.max_width, self.min_width, self.max_height, self.min_height = 0, 1000, 0, 1000
         self.spinCommand = False
         self.pointUp = False
 
@@ -59,7 +59,7 @@ class handDetector():
                 self.modifyRecSizeQueue(xmax-xmin, ymax-ymin)
             else:  # clear queue if other gestures shown and clear max min values
                 self.rectSizes = Queue(maxsize=100)
-                self.max_width, self.min_width, self.max_height, self.min_height = 0, 10000, 0, 10000
+                self.max_width, self.min_width, self.max_height, self.min_height = 0, 1000, 0, 1000
                 # print("Queue cleared")
                 # print(list(self.rectSizes.queue))
             if draw:
@@ -182,10 +182,13 @@ class handDetector():
         if self.fingers[0] == 0: #hand pointing up
             if f == [1,1,1,1,1] or f == [2,1,1,1,1]:
                 self.pointUp = False
+                self.spinCommand = False
+                # TODO make so that only "stop" command stops the spin tracking of the drone(s)
                 return "stop"
             elif f == [0,1,0,0,0] or f == [1,1,0,0,0] or f == [2,1,0,0,0]:
                 self.pointUp = True
-                self.spinCommand = self.detectSpinCommand()
+                if self.spinCommand is True:
+                    return "ACTIVATE SPIN"
                 return "point up"
             elif f == [0,0,1,0,0]:
                 self.pointUp = False
@@ -233,6 +236,11 @@ class handDetector():
         return length, img, [x1, y1, x2, y2, cx, cy]
 
     def modifyRecSizeQueue(self, width, height):
+        # if finger is pointing up
+        # save rectangle sizes around hand in a queue
+        # if differences are big enough then circular movement of hand is detected
+        # (circular movement is done parallel to ground, i.e. toward camera=away from body; away from cam=toward body)
+        # active spin command (Circle.py) then
         if width > self.max_width:
             self.max_width = width
         if width < self.min_width:
@@ -248,25 +256,16 @@ class handDetector():
         diff_height = self.max_height - self.min_width
         print("Diff width: " + str(diff_width))
         print("Diff height: " + str(diff_height))
-        if diff_width > 100 and diff_height > 200:  # activate spin command and clear queue and max min values
+        # TODO need to define accurate tresholds for activation (do experiments)
+        if diff_width > 75 and diff_height > 200:  # activate spin command and clear queue and max min values
             print("Activate spin command")
+            self.spinCommand = True
             self.rectSizes = Queue(maxsize=100)
-            self.max_width, self.min_width, self.max_height, self.min_height = 0, 10000, 0, 10000
+            self.max_width, self.min_width, self.max_height, self.min_height = 0, 1000, 0, 1000
+            # TODO call actual spin command (Circle.py I think or sth)
         # print("Queue: ")
         # print(list(self.rectSizes.queue))
         # print(self.rectSizes.qsize())
-
-    def detectSpinCommand(self):
-        # TODO could create a command for the drone to spin around the human
-        # human moves their hand around in a circle while pointing up
-        # could detect that circular movement by looking at the rectangle size change during some time
-        # on one end of the circle diameter hand is closest to camera and rectangle is bigger
-        # on the other end of the circle diameter hand is furthest from camera and rectangle is smaller
-        # values from bbox (rec width: xmax-xmin; rec height: ymax-ymin)
-        # could save last 25? 50? values of these? and if big enough change happens while pointing up
-        # start spinning around the human and tracking
-
-        return False
 
 
 def main():
