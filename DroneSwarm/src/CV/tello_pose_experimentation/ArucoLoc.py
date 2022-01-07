@@ -299,7 +299,7 @@ def detect(receiver, port, window_number):
                 attitude2 = "Marker %d attitude: y=%4.0f p=%4.0f r=%4.0f" % (
                     marker_id, ypr[0][0], ypr[0][1], ypr[0][2])
                 cv2.putText(frame, attitude2, (20, 690), font, 1, (255, 255, 255), 1, cv2.LINE_AA)
-            receiver.send([drone_x, drone_y, drone_z, yaw])
+            receiver.send([drone_x, drone_y, drone_z, yaw, marker_id])
         else:
             img_aruco = frame
 

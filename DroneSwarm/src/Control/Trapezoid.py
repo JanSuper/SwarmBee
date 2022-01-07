@@ -36,6 +36,7 @@ class Trapezoid:
     def set_position(self, position):
         if position.shape == self.position.shape:
             self.position = position
+            print(f"(Trapezoid) New position = {self.position}")
         else:
             print("Invalid position")
 
@@ -56,6 +57,7 @@ class Trapezoid:
             if target.dtype != np.int:
                 print("Target position must be an integer")
             else:
+                print(f"(Trapezoid) New target = {target}")
                 self.target[:] = target[:]
                 self.distance[:] = abs(self.target[:] - self.position[:])
                 # print(self.distance.tolist())
