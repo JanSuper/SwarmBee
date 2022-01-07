@@ -1,7 +1,6 @@
 import cv2
 import statistics as stats
 from djitellopy import tello
-from DroneSwarm.src.Utilities.tello_bluetooth_receiver import BackgroundBluetoothSensorRead
 
 
 def initialize_tello():
