@@ -122,30 +122,23 @@ class FlightPathController:
     # method that checks the distance sensors for values outside 'safe range' and calculates control command
     # method = 'Trapezoid', 'Circle'
     def distance_check_and_calc(self, bt_threshold, method='Trapezoid'):
-
+        u = [0, 0, 0, 0]
         if not self.bluetooth.acceptL:
             if check_for_interval(self.bluetooth.current_package[1:2], 0.0, bt_threshold):
                 u = self.calc(method)
-            else:
-                u = [0, 0, 0, 0]
         elif not self.bluetooth.acceptF:
             if check_for_interval(self.bluetooth.current_package[0:2:2], 0.0, bt_threshold):
                 u = self.calc(method)
-            else:
-                u = [0, 0, 0, 0]
         elif not self.bluetooth.acceptR:
             if check_for_interval(self.bluetooth.current_package[0:1], 0.0, bt_threshold):
                 u = self.calc(method)
-            else:
-                u = [0, 0, 0, 0]
         elif self.bluetooth.accept:
             if check_for_interval(self.bluetooth.current_package, 0.0, bt_threshold):
                 u = self.calc(method)
-            else:
-                u = [0, 0, 0, 0]
         else:
             # we do not have anything around and sensors are reading random values
             u = self.calc(method)
+        u[2], u[3] = 0, 0
         return u
 
     # Switch between different flight path routines

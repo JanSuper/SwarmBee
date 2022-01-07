@@ -173,6 +173,7 @@ import time
 
 
 def detect(receiver, port, window_number):
+    prev_marker = -1
     a = 50
     markers = []
     for i in range(72):
@@ -240,12 +241,15 @@ def detect(receiver, port, window_number):
         # Detect ID specified above
         if ids is not None:
 
-            found_marker = ids[0][0]
+            new_found_marker = ids[0][0]
+            if prev_marker == -1:
+                prev_marker = new_found_marker
+            # if prev_marker not in ids or prev_marker == new_found_marker:
 
             # Let's find one of the markers in the room (used marker ids: 0 ... 71)
-            if found_marker in range(0, 72):  # TODO
-
-                marker_id = found_marker
+            if new_found_marker in range(0, 72):  # TODO
+                marker_id = new_found_marker
+                prev_marker = new_found_marker
 
                 # Draw the marker boundaries
                 img_aruco = aruco.drawDetectedMarkers(frame, corners, ids, (0, 255, 0))

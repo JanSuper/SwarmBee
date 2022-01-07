@@ -28,6 +28,7 @@ def fetch_position():
     initial_flight = True
     previous_time = time.time()
     interval = 0.1
+    previous_position = np.zeros(4)
     while True:
         position = drone.sender.recv()
         if position is not None:
@@ -50,14 +51,18 @@ def fetch_position():
                     fly_thread = Thread(target=drone.controller.fly_trapezoid)
                     fly_thread.daemon = False
                     fly_thread.start()
-                else:
-                    current_time = time.time()
-                    if current_time - previous_time > interval:
-                        print(f"Current position: {position}; marker_id: {marker_id}")
-                        previous_time = current_time
-                    if drone.controller.need_new_position:
-                        drone.controller.trapezoid.set_position(position)
-                        drone.controller.need_new_position = False
+                current_time = time.time()
+                if current_time - previous_time > interval:
+                    deltas = np.absolute(position - previous_position)
+                    if any(deltas[:] > 50):
+                        print(f"Averaged {position} and {previous_position}")
+                        position = (position + previous_position) / 2
+                    print(f"Current position: {position}; marker_id: {marker_id}")
+                    previous_time = current_time
+                if drone.controller.need_new_position:
+                    drone.controller.trapezoid.set_position(position)
+                    drone.controller.need_new_position = False
+            previous_position = position
 
 
 def force_land():

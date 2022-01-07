@@ -1,7 +1,7 @@
 import numpy as np
 
-MAX_SPEED = 20  # cm/s
-ACCELERATION_RATE = 2  # cm/s^2
+MAX_SPEED = 30  # cm/s
+ACCELERATION_RATE = 0.1 * 2  # cm/s^2
 
 
 # noinspection PyUnresolvedReferences
@@ -61,8 +61,8 @@ class Trapezoid:
                 self.target[:] = target[:]
                 self.distance[:] = abs(self.target[:] - self.position[:])
                 # print(self.distance.tolist())
-                self.is_reached = check_for_greater(self.distance.tolist(), 10)
-                if any(self.is_reached):
+                # self.is_reached = check_for_greater(self.distance.tolist(), 10)
+                if any(self.distance[:] > 10):
                     self.reached = False
         else:
             print("Invalid target position")
