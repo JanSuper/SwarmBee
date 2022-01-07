@@ -173,15 +173,14 @@ class handDetector():
                 return 2
 
     def gestureFinder(self):
+        self.pointUp = False
         print(self.fingers[1:])
         f = self.fingers[1:]
         if f == [0,0,0,0,0]:
-            self.pointUp = False
             return "fist"
 
         if self.fingers[0] == 0: #hand pointing up
             if f == [1,1,1,1,1] or f == [2,1,1,1,1]:
-                self.pointUp = False
                 self.spinCommand = False
                 # TODO make so that only "stop" command stops the spin tracking of the drone(s)
                 return "stop"
@@ -191,19 +190,14 @@ class handDetector():
                     return "ACTIVATE SPIN"
                 return "point up"
             elif f == [0,0,1,0,0]:
-                self.pointUp = False
                 return "offensive"
             elif f == [1,0,1,0,0]:
-                self.pointUp = False
                 return "offensive"
             elif f == [2,0,1,0,0]:
-                self.pointUp = False
                 return "offensive"
             elif f == [0,1,0,0,1]:
-                self.pointUp = False
                 return "rock"
         elif self.fingers[0] == 1: #hand pointing left
-            self.pointUp = False
             if f == [2,0,0,0,0]:
                 return "thumbs down"
             elif f == [1,0,0,0,0]:
@@ -212,10 +206,8 @@ class handDetector():
                 return "point left"
         elif self.fingers[0] == 2: #hand pointing down
             if f == [0,1,0,0,0] or f == [1,1,0,0,0] or f == [2,1,0,0,0]:
-                self.pointUp = False
                 return "pointing down"
         elif self.fingers[0] == 3: #hand pointing right
-            self.pointUp = False
             if f == [2,0,0,0,0]:
                 return "thumbs down"
             elif f == [1,0,0,0,0]:
