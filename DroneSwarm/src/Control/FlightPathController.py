@@ -31,25 +31,30 @@ def check_for_interval(list1, lower, upper):
 
 class FlightPathController:
 
-    def __init__(self, drone, flightpath, offset, bt_threshold=0.01, interval=0.1):
+    def __init__(self, drone, flightpath, offset, initial_position, bt_threshold=0.01, interval=0.1):
         self.drone = drone
         self.flightpath = flightpath
-        self.offset = offset
-        self.bluetooth = BackgroundBluetoothSensorRead()
-        self.bt_threshold = bt_threshold
-        self.interval = interval
-        self.bluetooth.start()
+        self.offset = np.array(offset)  # offset to the leader = [dx, dy, dz, dyaw]
+        # self.circle = Circle()
         self.trapezoid = Trapezoid()
-        self.circle = Circle()
-        self.initial_position = np.zeros(4)  # TODO: Fetch initial_position from first ArUco frame
+        self.initial_position = np.array(initial_position)
         self.trapezoid.set_position(self.initial_position)
         if len(flightpath) > 0:
-            initial_target = self.initial_position + self.flightpath.pop(0)
+            initial_target = self.initial_position + np.array(self.flightpath[0])
+            if len(flightpath) > 1:
+                self.flightpath = self.flightpath[1:]
+            else:
+                self.flightpath = []
             self.completed_flightpath = False
         else:
             initial_target = self.initial_position
             self.completed_flightpath = True
         self.trapezoid.set_target(initial_target)
+        self.need_new_position = False
+        self.bluetooth = BackgroundBluetoothSensorRead()
+        self.bt_threshold = bt_threshold
+        self.interval = interval
+        self.bluetooth.start()
         time.sleep(3)  # Required for bluetooth values to start coming in
 
     def safe_for_takeoff(self):
@@ -70,21 +75,33 @@ class FlightPathController:
                     if not self.completed_flightpath:
                         if self.trapezoid.reached:
                             if len(self.flightpath) > 0:
-                                self.trapezoid.set_target(self.initial_position + self.flightpath.pop(0))
+                                self.trapezoid.set_target(self.initial_position + np.array(self.flightpath[0]))
+                                if len(self.flightpath) > 1:
+                                    self.flightpath = self.flightpath[1:]
+                                else:
+                                    self.flightpath = []
                             else:
                                 self.completed_flightpath = True
                         else:
-                            self.trapezoid.set_position(np.zeros(4))  # TODO: Update Trapezoid's position with ArUco
+                            self.need_new_position = True
+                            while self.need_new_position:
+                                pass
                             u = self.distance_check_and_calc(self.bt_threshold, method='Trapezoid')
                 else:
                     if not (self.completed_flightpath or self.drone.leader_drone.controller.completed_flightpath):
                         if self.trapezoid.reached:
                             if len(self.flightpath) > 0:
-                                self.trapezoid.set_target(self.initial_position + self.flightpath.pop(0))
+                                self.trapezoid.set_target(self.initial_position + np.array(self.flightpath[0]))
+                                if len(self.flightpath) > 1:
+                                    self.flightpath = self.flightpath[1:]
+                                else:
+                                    self.flightpath = []
                             else:
                                 self.completed_flightpath = True
                         else:
-                            self.trapezoid.set_position(np.zeros(4))  # TODO: Update Trapezoid's position with ArUco
+                            self.need_new_position = True
+                            while self.need_new_position:
+                                pass
                             u = self.distance_check_and_calc(self.bt_threshold, method='Trapezoid')
                     else:
                         if not self.completed_flightpath:
