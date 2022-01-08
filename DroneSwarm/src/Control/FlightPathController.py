@@ -18,7 +18,7 @@ def check_for_less(list1, val):
 
 
 # Function to check if there exists a value of list1 in interval (lower,upper)
-# If there exists a value within interval return True, else return False.
+# If there exists a value within interval return False, else return True.
 def check_for_interval(list1, lower, upper):
     # traverse in the list
     for x_bar in list1:
@@ -40,109 +40,109 @@ class FlightPathController:
         self.initial_position = np.array(initial_position)
         self.trapezoid.set_position(self.initial_position)
         if len(flightpath) > 0:
-            initial_target = self.initial_position + np.array(self.flightpath[0])
-            if len(flightpath) > 1:
-                self.flightpath = self.flightpath[1:]
-            else:
-                self.flightpath = []
+            # Flightpath contains an initial target
+            initial_target = self.initial_position + np.array(
+                self.flightpath.pop(0))  # Map initial target to drone's coordinate system
             self.completed_flightpath = False
         else:
+            # Flightpath does not contain an initial target
+            # Therefore, initial target is the drone's initial position (stationary)
             initial_target = self.initial_position
             self.completed_flightpath = True
         self.trapezoid.set_target(initial_target)
         self.need_new_position = False
+        # Initialize Bluetooth
         self.bluetooth = BackgroundBluetoothSensorRead()
         self.bt_threshold = bt_threshold
-        self.interval = interval
         self.bluetooth.start()
-        time.sleep(3)  # Required for bluetooth values to start coming in
+        time.sleep(3)  # Takes roughly three seconds before Bluetooth values start coming in
+        self.interval = interval
 
-    def safe_for_takeoff(self):
+    # Function that checks whether it is safe for the drone to perform takeoff
+    def check_safe_for_takeoff(self):
         while not check_for_less(self.bluetooth.current_package, 0.001):
             print("Error: the drone is not in a safe location. Please move the drone.")
             time.sleep(5)
         print("The drone is in a safe location. Please stay clear of the drone.")
         time.sleep(10)
 
+    # Function that flies the drone by using the Trapezoid controller
     def fly_trapezoid(self):
         previous_time = time.time()
         while True:
             now = time.time()
             dt = now - previous_time
             if dt > self.interval:
-                u = [0, 0, 0, 0]
-                if self.drone.leader_drone is None:
-                    if not self.completed_flightpath:
-                        if self.trapezoid.reached:
-                            if len(self.flightpath) > 0:
-                                self.trapezoid.set_target(self.initial_position + np.array(self.flightpath[0]))
-                                if len(self.flightpath) > 1:
-                                    self.flightpath = self.flightpath[1:]
-                                else:
-                                    self.flightpath = []
-                            else:
-                                self.completed_flightpath = True
+                u = [0, 0, 0, 0]  # Assume the drone is to be stationary; these values will only change if the drone
+                # has not reached its current target yet
+                if not self.completed_flightpath:
+                    calculate_u = False
+                    # Drone has not completed its flightpath yet
+                    if self.trapezoid.reached:
+                        # Drone has reached its current target
+                        if len(self.flightpath) > 0:
+                            # Flightpath contains at least one more target; update drone's target
+                            self.trapezoid.set_target(self.initial_position + np.array(self.flightpath.pop(0)))
+                            calculate_u = True
                         else:
-                            self.need_new_position = True
-                            while self.need_new_position:
-                                pass
-                            u = self.distance_check_and_calc(self.bt_threshold, method='Trapezoid')
-                else:
-                    if not (self.completed_flightpath or self.drone.leader_drone.controller.completed_flightpath):
-                        if self.trapezoid.reached:
-                            if len(self.flightpath) > 0:
-                                self.trapezoid.set_target(self.initial_position + np.array(self.flightpath[0]))
-                                if len(self.flightpath) > 1:
-                                    self.flightpath = self.flightpath[1:]
-                                else:
-                                    self.flightpath = []
-                            else:
-                                self.completed_flightpath = True
-                        else:
-                            self.need_new_position = True
-                            while self.need_new_position:
-                                pass
-                            u = self.distance_check_and_calc(self.bt_threshold, method='Trapezoid')
-                    else:
-                        if not self.completed_flightpath:
+                            # Flightpath has been completed
                             self.completed_flightpath = True
+                    else:
+                        # Drone has not reached its current target
+                        calculate_u = True
+                    if calculate_u:
+                        # Update drone's current position
+                        self.update_drone_position()
+                        # Calculate velocities using the Trapezoid controller
+                        u = self.distance_check_calculate_u(self.bt_threshold, method='Trapezoid')
+                # Send velocities to drone
                 self.drone.send_rc(u)
                 previous_time = now
 
-    # TODO add leader-follower logic to fly_circle
+    # Function that flies the drone in a circle
+    # TODO: add leader-follower logic
     def fly_circle(self, radius=100, speed=20, clock_wise=True):
         previous_time = time.time()
         while True:
             now = time.time()
             dt = now - previous_time
             if dt > self.interval:
-                u = self.distance_check_and_calc(0.01, method='Circle')
+                u = self.distance_check_calculate_u(0.01, method='Circle')
                 self.drone.send_rc(u)
 
-    # method that checks the distance sensors for values outside 'safe range' and calculates control command
+    # Function that request an external module to update the drone's current position
+    def update_drone_position(self):
+        # Send request to external module
+        self.need_new_position = True
+        # Wait for a response
+        while self.need_new_position:
+            pass
+
+    # Function that checks the distance sensors for values outside 'safe range' and calculates control command
     # method = 'Trapezoid', 'Circle'
-    def distance_check_and_calc(self, bt_threshold, method='Trapezoid'):
-        u = [0, 0, 0, 0]
+    def distance_check_calculate_u(self, bt_threshold, method='Trapezoid'):
+        u = [0, 0, 0, 0]  # Assume the drone is to be stationary
+        # Perform distance check and calculate velocities
         if not self.bluetooth.acceptL:
             if check_for_interval(self.bluetooth.current_package[1:2], 0.0, bt_threshold):
-                u = self.calc(method)
+                u = self.calculate_u(method)
         elif not self.bluetooth.acceptF:
             if check_for_interval(self.bluetooth.current_package[0:2:2], 0.0, bt_threshold):
-                u = self.calc(method)
+                u = self.calculate_u(method)
         elif not self.bluetooth.acceptR:
             if check_for_interval(self.bluetooth.current_package[0:1], 0.0, bt_threshold):
-                u = self.calc(method)
+                u = self.calculate_u(method)
         elif self.bluetooth.accept:
             if check_for_interval(self.bluetooth.current_package, 0.0, bt_threshold):
-                u = self.calc(method)
+                u = self.calculate_u(method)
         else:
-            # we do not have anything around and sensors are reading random values
-            u = self.calc(method)
-        u[2], u[3] = 0, 0
+            # We do not have anything around and sensors are reading random values
+            u = self.calculate_u(method)
+        u[2], u[3] = 0, 0  # TODO: remove once Trapezoid is more stable
         return u
 
-    # Switch between different flight path routines
-    def calc(self, method='Trapezoid'):
+    # Function that allows to switch between different flight path routines
+    def calculate_u(self, method='Trapezoid'):
         match method:
             case 'Trapezoid':
                 return self.trapezoid.calculate()
