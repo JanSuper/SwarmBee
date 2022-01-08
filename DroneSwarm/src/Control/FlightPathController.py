@@ -34,10 +34,10 @@ class FlightPathController:
     def __init__(self, drone, flightpath, offset, initial_position, bt_threshold=0.01, interval=0.1):
         self.drone = drone
         self.flightpath = flightpath
-        self.offset = np.array(offset)  # offset to the leader = [dx, dy, dz, dyaw]
+        self.offset = offset  # offset to the leader = [dx, dy, dz, dyaw]
         # self.circle = Circle()
         self.trapezoid = Trapezoid()
-        self.initial_position = np.array(initial_position)
+        self.initial_position = initial_position
         self.trapezoid.set_position(self.initial_position)
         if len(flightpath) > 0:
             # Flightpath contains an initial target
@@ -52,7 +52,7 @@ class FlightPathController:
         self.trapezoid.set_target(initial_target)
         self.need_new_position = False
         # Initialize Bluetooth
-        self.bluetooth = BackgroundBluetoothSensorRead()
+        self.bluetooth = BackgroundBluetoothSensorRead()  # TODO: turn Bluetooth into a class
         self.bt_threshold = bt_threshold
         self.bluetooth.start()
         time.sleep(3)  # Takes roughly three seconds before Bluetooth values start coming in

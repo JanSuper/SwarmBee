@@ -1,17 +1,19 @@
 # This file uses DroneBlocks' UDP send-receiver example code as a base
 # Source: https://github.com/dbaldwin/DroneBlocks-Tello-Python/blob/master/lesson3-udp-send-receive/UDPSendReceive.py
 
-import threading
 import numpy as np
+from threading import Thread
+
 from DroneSwarm.src.Swarm.drone import Drone
-import DroneSwarm.src.Utilities.KeyPressModule as kp
+import DroneSwarm.src.Utilities.KeyPressModule as KeyPress
 
 
 def send(message):
-    print("\nSending message: " + message)
+    messages_without_wait = ['land', 'emergency']
+    print(f"Sending message: {message}")
     for drone in drones:
         drone.send(message)
-    if message != "land":
+    if message not in messages_without_wait:
         wait()
 
 
@@ -66,7 +68,7 @@ def update_flightpath(leader_flightpath):
 
 def flight():
     for drone in drones:
-        thread = threading.Thread(target=drone.flight())
+        thread = Thread(target=drone.controller.fly_trapezoid)
         thread.daemon = True
         thread.start()
 
@@ -86,64 +88,89 @@ def monitor():
 
 
 def force_land():
-    kp.init()
+    KeyPress.init()
     while True:
-        if kp.get_key("q"):
+        if KeyPress.get_key("s"):
+            print("Soft landing initialized")
             # Make all drones stationary
-            for drone in drones:
-                drone.controller.completed_flightpath = True
-                drone.send_rc([0, 0, 0, 0])
-            # Stop the program
-            stop_program()
+            make_drones_stationary()
+            # Land all drones
+            send("land")
+        if KeyPress.get_key("e"):
+            print("Emergency landing initialized")
+            # Make all drones stationary
+            make_drones_stationary()
+            # Stop all drones' motors immediately
+            send("emergency")
 
 
-# Setup emergency landing
-receiveThread = threading.Thread(target=force_land)
-receiveThread.daemon = True
-receiveThread.start()
+def make_drones_stationary():
+    for drone in drones:
+        drone.controller.completed_flightpath = True
+        drone.send_rc([0, 0, 0, 0])
 
-# Initialize the swarm
-initial_leader_flightpath = []
+
+def setup_drone(drone):
+    # Perform takeoff
+    messages = ["command", "battery?", "streamoff", "streamon", "takeoff"]
+    for message in messages:
+        print(f"Sending message to drone #{drone.number}: {message}")
+        drone.send(message)
+        while drone.busy:
+            pass
+
+    # Start drone's ArUco process
+    drone.aruco.start()
+
+    # Wait for drone's initial position to be known
+    initial_position = None
+    while initial_position is None:
+        initial_position = drone.sender.recv()
+    initial_position = np.array(initial_position)
+
+    # Create drone's controller
+    drone.create_controller(initial_position)
+
+
+# Setup forced landing
+force_land_thread = Thread(target=force_land)
+force_land_thread.daemon = True
+force_land_thread.start()
+
 interface_names = ['wlxd03745f79670', 'wlxd0374572e205']
-follower_offsets = []
-no_drones = len(interface_names)
+udp_ports = [11111, 11113]
 drones = []
-
-# Directions:
-# forward = y positive
-# backward = y negative
-# left = x negative
-# right = x positive
-
 # Create leader drone
-leader_drone = Drone(1, initial_leader_flightpath, [0, 0, 0, 0], interface_names[0], None)
+leader_initial_flightpath = []
+leader_drone = Drone(1, leader_initial_flightpath, [0, 0, 0, 0], interface_names.pop(0), None, udp_ports.pop(0))
 drones.append(leader_drone)
 
-# Wait for leader drone's initial position to be known
-while leader_drone.controller.aruco.initial_position is None:
-    pass
-initial_leader_position = leader_drone.controller.aruco.initial_position
+# Enable receiver
+receive_thread = Thread(target=receive)
+receive_thread.daemon = True
+receive_thread.start()
+
+# Setup leader drone
+setup_drone(leader_drone)
 
 # Create follower drones
-for index in range(no_drones-1):
-    follower_offset = follower_offsets[index]
-    follower_flightpath = [initial_leader_position + follower_offset]
-    drones.append(Drone(index+2, follower_flightpath, follower_offset, interface_names[index+1], leader_drone))
-follower_drones = drones[1:]
+follower_offsets = [[-50, 0, 0, 0]]
+no_drones = len(interface_names)
+drone_number = 2
+while drone_number <= no_drones:
+    follower_offset = np.array(follower_offsets.pop(0))
+    follower_flightpath = [[leader_drone.controller.initial_position + follower_offset]]
+    follower_drone = Drone(drone_number, follower_flightpath, follower_offset, interface_names.pop(0), leader_drone,
+                           udp_ports.pop(0))
+    drones.append(follower_drone)
+    drone_number += 1
 
-print(f"Number of drones = {no_drones}")
-for drone in drones:
-    print(f"Drone #{drone.number}: initial position = {drone.controller.aruco.initial_position}; offset = "
-          f"{drone.controller.offset}; initial target ={drone.controller.flightpath[0]}")
+# Setup follower drones
+for follower_drone in drones[1:]:
+    setup_drone(follower_drone)
 
-# Create thread to receive information from the drones
-receiveThread = threading.Thread(target=receive)
-receiveThread.daemon = True
-receiveThread.start()
-
-
-takeoff()
-
+# Start flying the swarm
 flight()
 
+# Monitor the swarm
 monitor()
