@@ -123,6 +123,11 @@ def fetch_position():
                     drone.controller.trapezoid.set_position(current_position)
                     drone.controller.need_new_position = False
 
+                if drone.controller.need_new_flightpath:
+                    # Can only trigger if 'drone' is leader drone
+                    drone.controller.flightpath = []  # TODO: extend ArUco w/ hard-coded flightpaths
+                    drone.controller.need_new_flightpath = False
+
 
 def start_flying():
     for drone in drones:
@@ -146,8 +151,9 @@ def monitor():
 
             if all_drones_completed_flightpath:
                 # Update leader drone's flightpath
-                new_leader_flightpath = []  # TODO: get from ArUco
-                leader_drone.controller.flightpath = new_leader_flightpath
+                leader_drone.controller.need_new_flightpath = True
+                while leader_drone.controller.need_new_flightpath:
+                    pass
                 leader_drone.controller.completed_flightpath = False
         else:
             # No drone has completed their flightpath

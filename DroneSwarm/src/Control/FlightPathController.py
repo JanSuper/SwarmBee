@@ -34,6 +34,7 @@ class FlightPathController:
     def __init__(self, drone, flightpath, offset, initial_position, bt_threshold=0.01, interval=0.1):
         self.drone = drone
         self.flightpath = flightpath
+        self.need_new_flightpath = False
         self.offset = offset  # offset to the leader = [dx, dy, dz, dyaw]
         # self.circle = Circle()
         self.trapezoid = Trapezoid()
