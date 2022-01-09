@@ -1,7 +1,7 @@
 import time
 import numpy as np
-from DroneSwarm.src.Control.Trapezoid import Trapezoid
 from DroneSwarm.src.Control.Circle import Circle
+from DroneSwarm.src.Control.Trapezoid import Trapezoid
 from DroneSwarm.src.Utilities.tello_bluetooth_receiver import BackgroundBluetoothSensorRead
 
 

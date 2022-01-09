@@ -1,11 +1,36 @@
 # This file uses DroneBlocks' UDP send-receiver example code as a base
 # Source: https://github.com/dbaldwin/DroneBlocks-Tello-Python/blob/master/lesson3-udp-send-receive/UDPSendReceive.py
 
+import time
 import numpy as np
 from threading import Thread
+from multiprocessing import Process
 
 from DroneSwarm.src.Swarm.drone import Drone
 import DroneSwarm.src.Utilities.KeyPressModule as KeyPress
+
+
+def force_land():
+    KeyPress.init()
+    while True:
+        if KeyPress.get_key("s"):
+            print("Soft landing initialized")
+            # Make all drones stationary
+            make_drones_stationary()
+            # Land all drones
+            send("land")
+        if KeyPress.get_key("e"):
+            print("Emergency landing initialized")
+            # Make all drones stationary
+            make_drones_stationary()
+            # Stop all drones' motors immediately
+            send("emergency")
+
+
+def make_drones_stationary():
+    for drone in drones:
+        drone.controller.completed_flightpath = True
+        drone.send_rc([0, 0, 0, 0])
 
 
 def send(message):
@@ -43,71 +68,11 @@ def check_error():
 
 
 def stop_program():
+    make_drones_stationary()
     send("land")
     for drone in drones:
         drone.socket.close()
     exit()
-
-
-def takeoff():
-    send("command")
-    send("battery?")
-    send("streamon")
-    send("streamoff")
-    send("takeoff")
-
-
-def update_flightpath(leader_flightpath):
-    leader_drone.flightpath = leader_flightpath
-    leader_drone.controller.trapezoid.set_target(np.array(leader_flightpath[0]))
-    for follower_drone in follower_drones:
-        follower_drone.update_flightpath(leader_flightpath)
-    for drone in drones:
-        drone.completed_flightpath = False
-
-
-def flight():
-    for drone in drones:
-        thread = Thread(target=drone.controller.fly_trapezoid)
-        thread.daemon = True
-        thread.start()
-
-
-def monitor():
-    while True:
-        new_flightpath = True
-        for drone in drones:
-            if not drone.completed_flightpath:
-                new_flightpath = False
-                break
-        if new_flightpath:
-            print("NEED NEW FLIGHTPATH")
-            # new_leader_flightpath = leader_drone.fetch_new_flightpath()
-            # update_flightpath(new_leader_flightpath)
-        check_error()
-
-
-def force_land():
-    KeyPress.init()
-    while True:
-        if KeyPress.get_key("s"):
-            print("Soft landing initialized")
-            # Make all drones stationary
-            make_drones_stationary()
-            # Land all drones
-            send("land")
-        if KeyPress.get_key("e"):
-            print("Emergency landing initialized")
-            # Make all drones stationary
-            make_drones_stationary()
-            # Stop all drones' motors immediately
-            send("emergency")
-
-
-def make_drones_stationary():
-    for drone in drones:
-        drone.controller.completed_flightpath = True
-        drone.send_rc([0, 0, 0, 0])
 
 
 def setup_drone(drone):
@@ -132,17 +97,88 @@ def setup_drone(drone):
     drone.create_controller(initial_position)
 
 
+def fetch_position():
+    previous_positions = {}
+
+    for drone in drones:
+        previous_positions[drone] = drone.controller.initial_position
+
+    while True:
+        for drone in drones:
+            received = drone.sender.recv()
+            if received is not None:
+                marker_id = received[4]
+                current_position = received[:4]
+                current_position = np.rint(np.array(current_position))
+
+                previous_position = previous_positions.get(drone)
+                deltas = np.absolute(current_position - previous_position)
+                if any(deltas[:] > 50):
+                    print(f"(ArUco) Drone #{drone.number}: averaged {current_position} and {previous_position}")
+                    current_position = (current_position + previous_position) / 2
+                previous_positions[drone] = current_position
+                print(f"(ArUco) Drone #{drone.number}: current position = {current_position}")
+
+                if drone.controller.need_new_position:
+                    drone.controller.trapezoid.set_position(current_position)
+                    drone.controller.need_new_position = False
+
+
+def start_flying():
+    for drone in drones:
+        thread = Thread(target=drone.controller.fly_trapezoid)
+        thread.daemon = True
+        thread.start()
+
+
+def monitor():
+    previous_time = time.time()
+    follower_flightpath_update_interval = 0.1
+
+    while True:
+        if leader_drone.controller.completed_flightpath:
+            # Leader drone has finished its flightpath
+            all_drones_completed_flightpath = True
+            for follower_drone in drones[1:]:
+                if not follower_drone.controller.completed_flightpath:
+                    all_drones_completed_flightpath = False
+                    break
+
+            if all_drones_completed_flightpath:
+                # Update leader drone's flightpath
+                new_leader_flightpath = []  # TODO: get from ArUco
+                leader_drone.controller.flightpath = new_leader_flightpath
+                leader_drone.controller.completed_flightpath = False
+        else:
+            # No drone has completed their flightpath
+            current_time = time.time()
+            if current_time - previous_time > follower_flightpath_update_interval:
+                # Add a new target to each follower's flightpath
+                leader_current_position = leader_drone.controller.trapezoid.position
+                for follower_drone in drones[1:]:
+                    new_follower_target = leader_current_position + follower_drone.controller.offset
+                    follower_drone.controller.flightpath.append(new_follower_target.tolist())
+                    follower_drone.controller.completed_flightpath = False
+
+                previous_time = current_time
+        check_error()
+
+
 # Setup forced landing
 force_land_thread = Thread(target=force_land)
 force_land_thread.daemon = True
 force_land_thread.start()
 
-interface_names = ['wlxd03745f79670', 'wlxd0374572e205']
+# Control parameters
 udp_ports = [11111, 11113]
+interface_names = ['wlxd03745f79670', 'wlxd0374572e205']
+leader_initial_flightpath = []
+follower_offsets = [[-50, 0, 0, 0]]
+
 drones = []
 # Create leader drone
-leader_initial_flightpath = []
-leader_drone = Drone(1, leader_initial_flightpath, [0, 0, 0, 0], interface_names.pop(0), None, udp_ports.pop(0))
+leader_drone = Drone(1, leader_initial_flightpath, np.array([0, 0, 0, 0]), interface_names.pop(0), None,
+                     udp_ports.pop(0))
 drones.append(leader_drone)
 
 # Enable receiver
@@ -154,7 +190,6 @@ receive_thread.start()
 setup_drone(leader_drone)
 
 # Create follower drones
-follower_offsets = [[-50, 0, 0, 0]]
 no_drones = len(interface_names)
 drone_number = 2
 while drone_number <= no_drones:
@@ -169,8 +204,20 @@ while drone_number <= no_drones:
 for follower_drone in drones[1:]:
     setup_drone(follower_drone)
 
-# Start flying the swarm
-flight()
+p = Process(target=fetch_position)
+p.start()
 
-# Monitor the swarm
+# Get followers into formation
+leader_drone.controller.completed_flightpath = True
+start_flying()
+in_formation = False
+while not in_formation:
+    in_formation = True
+    for follower_drone in drones[1:]:
+        if not follower_drone.controller.completed_flightpath:
+            in_formation = False
+            break
+
+# Start proper flight
+leader_drone.controller.completed_flightpath = False
 monitor()
