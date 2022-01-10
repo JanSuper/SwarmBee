@@ -31,16 +31,16 @@ def check_for_interval(list1, lower, upper):
 
 class FlightPathController:
 
-    def __init__(self, drone, flightpath, offset, initial_position, bt_threshold=0.01, interval=0.1):
+    def __init__(self, drone, initial_position, bt_threshold=0.20, interval=0.1):
         self.drone = drone
-        self.flightpath = flightpath
+        self.flightpath = drone.flightpath
         self.need_new_flightpath = False
-        self.offset = offset  # offset to the leader = [dx, dy, dz, dyaw]
+        self.offset = drone.offset  # offset to the leader = [dx, dy, dz, dyaw]
         # self.circle = Circle()
         self.trapezoid = Trapezoid()
         self.initial_position = initial_position
         self.trapezoid.set_position(self.initial_position)
-        if len(flightpath) > 0:
+        if len(self.flightpath) > 0:
             # Flightpath contains an initial target
             initial_target = self.initial_position + np.array(
                 self.flightpath.pop(0))  # Map initial target to drone's coordinate system
@@ -53,7 +53,7 @@ class FlightPathController:
         self.trapezoid.set_target(initial_target)
         self.need_new_position = False
         # Initialize Bluetooth
-        self.bluetooth = BackgroundBluetoothSensorRead()  # TODO: turn Bluetooth into a class
+        self.bluetooth = BackgroundBluetoothSensorRead(drone.bt_address)
         self.bt_threshold = bt_threshold
         self.bluetooth.start()
         time.sleep(3)  # Takes roughly three seconds before Bluetooth values start coming in
@@ -125,13 +125,13 @@ class FlightPathController:
         u = [0, 0, 0, 0]  # Assume the drone is to be stationary
         # Perform distance check and calculate velocities
         if not self.bluetooth.acceptL:
-            if check_for_interval(self.bluetooth.current_package[1:2], 0.0, bt_threshold):
+            if check_for_interval(self.bluetooth.current_package[0], 0.0, bt_threshold):
                 u = self.calculate_u(method)
         elif not self.bluetooth.acceptF:
-            if check_for_interval(self.bluetooth.current_package[0:2:2], 0.0, bt_threshold):
+            if check_for_interval(self.bluetooth.current_package[1], 0.0, bt_threshold):
                 u = self.calculate_u(method)
         elif not self.bluetooth.acceptR:
-            if check_for_interval(self.bluetooth.current_package[0:1], 0.0, bt_threshold):
+            if check_for_interval(self.bluetooth.current_package[2], 0.0, bt_threshold):
                 u = self.calculate_u(method)
         elif self.bluetooth.accept:
             if check_for_interval(self.bluetooth.current_package, 0.0, bt_threshold):

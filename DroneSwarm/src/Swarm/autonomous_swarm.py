@@ -195,13 +195,14 @@ force_land_thread.start()
 # Control parameters
 udp_ports = [11111]  # 11113
 interface_names = ['wlxd03745f79670']  # wlxd0374572e205
+bluetooth_addresses = ['84:CC:A8:2F:E9:32']  # 84:CC:A8:2E:9C:B6, 9C:9C:1F:E1:B0:62
 leader_initial_flightpath = []
 follower_offsets = [[-50, 0, 0, 0]]
 
 drones = []
 # Create leader drone
-leader_drone = Drone(1, leader_initial_flightpath, np.array([0, 0, 0, 0]), interface_names.pop(0), None,
-                     udp_ports.pop(0))
+leader_drone = Drone(1, None, leader_initial_flightpath, np.array([0, 0, 0, 0]), interface_names.pop(0),
+                     udp_ports.pop(0), bluetooth_addresses.pop(0))
 drones.append(leader_drone)
 
 # Enable receiver
@@ -222,8 +223,8 @@ drone_number = 2
 while drone_number <= no_drones:
     follower_offset = np.array(follower_offsets.pop(0))
     follower_flightpath = [[leader_drone.controller.initial_position + follower_offset]]
-    follower_drone = Drone(drone_number, follower_flightpath, follower_offset, interface_names.pop(0), leader_drone,
-                           udp_ports.pop(0))
+    follower_drone = Drone(drone_number, leader_drone, follower_flightpath, follower_offset, interface_names.pop(0),
+                           udp_ports.pop(0), bluetooth_addresses.pop(0))
     drones.append(follower_drone)
     drone_number += 1
 

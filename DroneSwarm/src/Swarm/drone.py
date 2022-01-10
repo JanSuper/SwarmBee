@@ -7,23 +7,24 @@ from DroneSwarm.src.CV.tello_pose_experimentation.ArucoLoc import detect
 
 class Drone:
 
-    def __init__(self, number, flightpath, offset, interface_name, leader_drone, udp_port):
+    def __init__(self, number, leader_drone, flightpath, offset, interface_name, udp_port, bt_address):
         self.number = number
+        self.leader_drone = leader_drone
         self.flightpath = flightpath
         self.offset = offset
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.socket.setsockopt(socket.SOL_SOCKET, 25, interface_name.encode())
         self.socket.bind(('', 9000))
-        self.leader_drone = leader_drone
         receiver, sender = Pipe()
         self.sender = sender
         self.aruco = Process(target=detect, args=(receiver, udp_port, number,))
         self.busy = False
         self.error = False
         self.controller = None
+        self.bt_address = bt_address
 
     def create_controller(self, initial_position):
-        self.controller = FlightPathController(self, self.flightpath, self.offset, initial_position)
+        self.controller = FlightPathController(self, initial_position)
 
     def send_dummy_command(self, dummy_command):
         try:
