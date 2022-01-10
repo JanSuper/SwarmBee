@@ -1,24 +1,12 @@
 #!/usr/bin/env python3
-"""Printing values are commented out to test only bluetooth uncomment them on line 123"""
 import asyncio
-# from ros_comm.clients.rospy.src import rospy as rospy
-# from sensor_msgs.msg import LaserScan
 from DroneSwarm.src.Utilities import utils
 from threading import Thread
 from bleak import BleakClient
 from bleak.exc import BleakError
 import time
 
-CHARACTERISTIC_UUID = "B5AF1711-6486-4104-8DBE-84B66CF6E1AD"
-
-ADDRESS = '84:CC:A8:2F:E9:32'
-
-current_package = [0, 0, 0]
-avg_package = [0, 0, 0]
-# Left, Middle, Right
-history = [[], [], []]
-accept = False
-acceptL, acceptF, acceptR = False, False, False
+characteristic_uuid = "B5AF1711-6486-4104-8DBE-84B66CF6E1AD"
 var_threshold = 0.5
 interval_threshold = 15
 
@@ -26,30 +14,21 @@ interval_threshold = 15
 class BackgroundBluetoothSensorRead:
     """
        This class read bluetooth values from a PacketStream in background. Use
-       BackgroundBluetoothSensorRead.current_package to get the current values.
+       ObjectName.current_package to get the current values.
        """
 
-    def __init__(self):
-        self.uuid = CHARACTERISTIC_UUID
-        self.address = ADDRESS
-        self.current_package = current_package
-        # self.value = [0,0,0]
-        # rospy.init_node('tello_tof_publisher')
+    def __init__(self, address):
+        self.characteristic_uuid = characteristic_uuid
+        self.address = address
+        self.current_package = [0, 0, 0]
         self.loop = asyncio.get_event_loop()
         self.loop.set_debug(False)
-        self.connection = Connection(self.address, self.uuid, self.loop, self)  # TODO
-        self.accept = accept
-        self.acceptL = acceptL
-        self.acceptF = acceptF
-        self.acceptR = acceptR
-        self.avg_package = avg_package
-        #
-        # try:
-        #     Tello.LOGGER.debug('trying to grab video frame...')
-        #     self.container = av.open(self.address + '?timeout=1000000', timeout=Tello.FRAME_GRAB_TIMEOUT)
-        # except av.error.ExitError:
-        #     raise Exception('Failed to grab video frame from video stream')
-
+        self.connection = Connection(self)
+        self.accept = False
+        self.acceptL = False
+        self.acceptF = False
+        self.acceptR = False
+        self.avg_package = [0, 0, 0]
         self.stopped = False
         self.worker = Thread(target=self.update_frame, args=(), daemon=True)
 
@@ -98,22 +77,16 @@ class Package:
 
 class Connection:
 
-    def __init__(self, address, characteristic, loop, sensorRead) -> None:  # TODO
-        self.address = address
-        self.characteristic = characteristic
+    def __init__(self, sensor_read) -> None:
+        self.characteristic_uuid = sensor_read.characteristic_uuid
+        self.address = sensor_read.address
         self.client = None
-        self.loop = loop
-
+        self.loop = sensor_read.loop
         self.current_package = None
-        # self.scan_msg = LaserScan()
-        # self.scan_msg.header.seq = -1
-        # self.scan_msg.range_min = 0.04  # [m]
-        # self.scan_msg.range_max = 2.00  # [m]
-        # self.pub = rospy.Publisher('/tello/arduino/tof', LaserScan, queue_size=10)
-
         self.connected = False
         self.reconnecting = False
-        self.sensorRead = sensorRead
+        self.sensor_read = sensor_read
+        self.history = [[], [], []]
 
     def notification_handler(self, sender, data):
         package = int.from_bytes(data, byteorder='little', signed=False)
@@ -129,42 +102,37 @@ class Connection:
         elif self.current_package is not None and second_package:
             self.current_package.parse_second_part(package)
 
-            # self.scan_msg.header.seq += 1
-            # self.scan_msg.header.stamp = rospy.Time.now()
-
-            current_package[0] = self.current_package.sensor_1
-            current_package[1] = self.current_package.sensor_2
-            current_package[2] = self.current_package.sensor_3
-            history[0].append(current_package[0])
-            history[1].append(current_package[1])
-            history[2].append(current_package[2])
+            self.sensor_read.current_package[0] = self.current_package.sensor_1
+            self.sensor_read.current_package[1] = self.current_package.sensor_2
+            self.sensor_read.current_package[2] = self.current_package.sensor_3
+            self.history[0].append(self.sensor_read.current_package[0])
+            self.history[1].append(self.sensor_read.current_package[1])
+            self.history[2].append(self.sensor_read.current_package[2])
             norm = False
-            if len(history[0]) > 10:
-                for ls in history:
+            if len(self.history[0]) > 10:
+                for ls in self.history:
                     ls.pop(0)
-                    norm = True
+                norm = True
             # print([self.current_package.sensor_1, self.current_package.sensor_2, self.current_package.sensor_3])
             if norm:
-                self.sensorRead.accept = utils.normalize(history, var_threshold=var_threshold,
-                                                         interval_threshold=interval_threshold, print_out=True)
-                self.sensorRead.acceptL = utils.normalize(history[0], var_threshold=var_threshold,
-                                                          interval_threshold=interval_threshold, print_out=True,
-                                                          dir=True)
-                self.sensorRead.acceptF = utils.normalize(history[1], var_threshold=var_threshold,
-                                                          interval_threshold=interval_threshold, print_out=True,
-                                                          dir=True)
-                self.sensorRead.acceptR = utils.normalize(history[2], var_threshold=var_threshold,
-                                                          interval_threshold=interval_threshold, print_out=True,
-                                                          dir=True)
+                self.sensor_read.accept = utils.normalize(self.history, var_threshold=var_threshold,
+                                                          interval_threshold=interval_threshold, print_out=True)
+                self.sensor_read.acceptL = utils.normalize(self.history[0], var_threshold=var_threshold,
+                                                           interval_threshold=interval_threshold, print_out=True,
+                                                           dir=True)
+                self.sensor_read.acceptF = utils.normalize(self.history[1], var_threshold=var_threshold,
+                                                           interval_threshold=interval_threshold, print_out=True,
+                                                           dir=True)
+                self.sensor_read.acceptR = utils.normalize(self.history[2], var_threshold=var_threshold,
+                                                           interval_threshold=interval_threshold, print_out=True,
+                                                           dir=True)
 
-                if self.sensorRead.accept:
-                    self.sensorRead.avg_package = utils.roll_average(history)
+                if self.sensor_read.accept:
+                    self.sensor_read.avg_package = utils.roll_average(self.history)
                     # print(self.sensorRead.avg_package)
-            # self.pub.publish(self.scan_msg)
             self.current_package = None
 
     def disconnect_handler(self, client):
-        # rospy.logwarn("Client disconnected...")
         self.connected = False
         self.client = None
 
@@ -175,40 +143,38 @@ class Connection:
                     await self.connect()
                 except BleakError:
                     pass
-                    # rospy.logerr("Failed to establish connection...")
             else:
-                # rospy.loginfo("Create BleakClient")
                 self.client = BleakClient(self.address, disconnected_callback=self.disconnect_handler)
 
     async def connect(self):
         if self.connected:
             return False
 
-        # rospy.loginfo("Connecting...")
         await self.client.connect(use_cached=False)
         self.connected = self.client.is_connected
         if self.connected:
-            # rospy.loginfo("Connected...")
-            await self.client.start_notify(self.characteristic, self.notification_handler)
+            await self.client.start_notify(self.characteristic_uuid, self.notification_handler)
             while self.connected:
                 await asyncio.sleep(1)
-        # else:
-        # rospy.logerr("connect() called but connection failed")
 
     async def cleanup(self):
         if self.client and self.connected:
-            await self.client.stop_notify(self.characteristic)
+            await self.client.stop_notify(self.characteristic_uuid)
             await self.client.disconnect()
 
 
 if __name__ == "__main__":
-    # rospy.init_node('tello_tof_publisher')
-    loop = asyncio.get_event_loop()
-    loop.set_debug(True)
-    connection = Connection(ADDRESS, CHARACTERISTIC_UUID, loop)
-    try:
-        loop.run_until_complete(connection.manager())
-    except KeyboardInterrupt:
-        print("exiting...")
-    finally:
-        loop.run_until_complete(connection.cleanup())
+    address_EDAD6F = '84:CC:A8:2F:E9:32'
+    address_60FF08 = "9C:9C:1F:E1:B0:62"
+    address_EDB02F = "84:CC:A8:2E:9C:B6"
+
+    bluetooth = BackgroundBluetoothSensorRead(address_60FF08)
+    bluetooth.start()
+
+    previous_time = time.time()
+    interval = 0.1
+    while True:
+        current_time = time.time()
+        if current_time - previous_time > interval:
+            print(f"Bluetooth values: {bluetooth.current_package}")
+            previous_time = current_time
