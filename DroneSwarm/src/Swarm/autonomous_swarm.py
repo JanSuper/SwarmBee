@@ -116,13 +116,13 @@ def fetch_position():
                 previous_position = previous_positions.get(drone)
                 deltas = np.absolute(current_position - previous_position)
                 if any(deltas[:] > 50):
-                    # print(f"(ArUco) Drone #{drone.number}: averaged {current_position} and {previous_position}")
+                    print(f"(ArUco) Drone #{drone.number}: averaged {current_position} and {previous_position}")
                     current_position = (current_position + previous_position) / 2
                 previous_positions[drone] = current_position
-                # print(f"(ArUco) Drone #{drone.number}: current position = {current_position}")
+                print(f"(ArUco) Drone #{drone.number}: current position = {current_position}")
 
                 if drone.controller.need_new_position:
-                    drone.controller.trapezoid.set_position(current_position)
+                    drone.controller.current_position = current_position
                     drone.controller.need_new_position = False
 
                 if drone.controller.need_new_flightpath:
@@ -133,7 +133,7 @@ def fetch_position():
 
 def start_flying():
     for drone in drones:
-        thread = Thread(target=drone.controller.fly_trapezoid)
+        thread = Thread(target=drone.controller.fly_you_fool, args=('Trapezoid',))
         thread.daemon = True
         thread.start()
 
@@ -202,7 +202,7 @@ force_land_thread.start()
 udp_ports = [11111]  # 11113
 interface_names = ['wlxd03745f79670']  # wlxd0374572e205
 bluetooth_addresses = ['84:CC:A8:2F:E9:32']  # 84:CC:A8:2E:9C:B6, 9C:9C:1F:E1:B0:62
-leader_initial_flightpath = []  # [100, 0, 0, 0]
+leader_initial_flightpath = [[100, 0, 0, 0], [100, 100, 0, 0]]  # [100, 0, 0, 0]
 follower_offsets = [[-50, 0, 0, 0]]
 
 drones = []

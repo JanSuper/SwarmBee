@@ -1,7 +1,7 @@
 import numpy as np
 
-MAX_SPEED = 30  # cm/s
-ACCELERATION_RATE = 0.1 * 2  # cm/s^2
+MAX_SPEED = 25  # cm/s
+ACCELERATION_RATE = 2  # cm/s^2
 
 
 # noinspection PyUnresolvedReferences
@@ -30,7 +30,7 @@ class Trapezoid:
         self.target = np.zeros(4)  # target position as origin
         self.velocity = np.zeros(4, dtype=int)  # initial velocities as 0
         self.distance = np.zeros(4)  # current distance to target
-        self.is_reached = [True, True, True, True]
+        self.is_reached = [False, False, False, False]
         self.reached = False
 
     def set_position(self, position):
@@ -63,6 +63,7 @@ class Trapezoid:
                 # print(self.distance.tolist())
                 # self.is_reached = check_for_greater(self.distance.tolist(), 10)
                 if any(self.distance[:] > 10):
+                    self.is_reached = [False, False, False, False]
                     self.reached = False
         else:
             print("Invalid target position")
@@ -82,7 +83,7 @@ class Trapezoid:
                     elif self.target[i] - self.position[i] < 0:
                         self.velocity[i] = -MAX_SPEED
             elif abs((self.target[i] - self.position[i])) <= abs((self.distance[i] / 3)):
-                if abs(self.position[i] - self.target[i]) > 3:
+                if abs(self.position[i] - self.target[i]) > 5:
                     if abs(self.velocity[i]) > 11:
                         if self.target[i] - self.position[i] > 0:
                             self.velocity[i] -= ACCELERATION_RATE
@@ -104,4 +105,5 @@ class Trapezoid:
 
         np.clip(self.velocity, -MAX_SPEED, MAX_SPEED)
         velocity = self.velocity.tolist()
+        print(velocity)
         return velocity

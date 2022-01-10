@@ -42,6 +42,7 @@ class Drone:
             print("Error sending \"" + message + "\" to drone #" + str(self.number) + ": " + str(e))
 
     def send_rc(self, u):
+        u[1] = -u[1]  # negate vel_y
         tmp_u = []
         for vel in u:
             tmp_u.append(max(-100, min(100, vel)))
@@ -66,44 +67,3 @@ class Drone:
         except ValueError as e:
             self.error = True
             print("Error receiving message from drone #" + str(self.number) + ": " + str(e))
-
-    # def update_flightpath(self, leader_flightpath):
-    #     self.flightpath = []
-    #     for leader_coordinate in leader_flightpath:
-    #         coordinate = [0]*4
-    #         coordinate[0] = leader_coordinate[0] + self.offset[0]
-    #         coordinate[1] = leader_coordinate[1] + self.offset[1]
-    #         coordinate[2] = leader_coordinate[2] + self.offset[2]
-    #         coordinate[3] = leader_coordinate[3] + self.offset[3]
-    #         self.flightpath.append(coordinate)
-    #     self.controller.trapezoid.set_target(np.array(self.flightpath[0]))
-
-    # def flight(self):
-    #     target_index = 0
-    #     interval = 0.2  # 200 ms
-    #     previous_time = time.time()
-    #     while True:
-    #         if not self.completed_flightpath:
-    #             if self.trapezoid.reached:
-    #                 if target_index < len(self.flightpath) - 1:
-    #                     target_index += 1
-    #                     self.trapezoid.set_target(np.array(self.flightpath[target_index]))
-    #                 else:
-    #                     target_index = 0
-    #                     self.completed_flightpath = True
-    #                     u = [0, 0, 0, 0]
-    #                     self.send_rc_command(u)
-    #             else:
-    #                 now = time.time()
-    #                 dt = now - previous_time
-    #                 if dt > interval:
-    #                     previous_time = now
-    #                     # TODO: ask new position from ArUco and pass along to Trapezoid controller
-    #                     u = self.trapezoid.calculate()
-    #                     self.send_rc_command(u)
-    #                     self.trapezoid.update_position_estimate(dt, *u)  # TODO: Remove when Trapezoid receives position from ArUco
-    #                     print("Position: ", self.trapezoid.position, "Target: ", self.trapezoid.target, "Control: ", u)
-
-    # def fetch_new_flightpath(self):
-    #     # TODO: fetch new flightpath from ArUco
-    #     return None

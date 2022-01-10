@@ -5,6 +5,7 @@ from DroneSwarm.src.Control.Trapezoid import Trapezoid
 from DroneSwarm.src.Utilities.tello_bluetooth_receiver import BackgroundBluetoothSensorRead
 from DroneSwarm.src.Control.ArucoPID import APID
 
+
 # Function to check if all the values of list1 are greater than val
 # If there exists a values less than val return False, else return True.
 def check_for_less(list1, val):
@@ -39,6 +40,7 @@ class FlightPathController:
         # self.circle = Circle()
         self.trapezoid = Trapezoid()
         self.initial_position = initial_position
+        self.current_position = initial_position
         self.trapezoid.set_position(self.initial_position)
         if len(self.flightpath) > 0:
             # Flightpath contains an initial target
@@ -104,6 +106,7 @@ class FlightPathController:
                     if calculate_u:
                         # Update drone's current position
                         self.update_drone_position()
+                        self.trapezoid.set_position(self.current_position)
                         # Calculate velocities using the Trapezoid controller
                         u = self.distance_check_calculate_u(self.bt_threshold, method='Trapezoid')
                 # Send velocities to drone
@@ -128,8 +131,10 @@ class FlightPathController:
             dt = now - previous_time
             if dt > self.interval:
                 self.update_drone_position()
-                self.pid.realUpdate(self.initial_position)
+                self.pid.realUpdate(self.current_position)
                 u = self.distance_check_calculate_u(0.04, method='APID')
+                self.drone.send_rc(u)
+                previous_time = now
 
     # Function that request an external module to update the drone's current position
     def update_drone_position(self):
@@ -172,4 +177,3 @@ class FlightPathController:
                 return self.circle.calculate_angular_velocity()
             case 'APID':
                 return self.pid.getVel()
-

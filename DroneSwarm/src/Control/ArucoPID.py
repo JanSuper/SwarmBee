@@ -1,7 +1,9 @@
 import math
 import numpy as np
 
+
 class APID():
+
     def __init__(self, des, ryaw=0):
         self.x = 0
         self.y = 0
@@ -23,10 +25,10 @@ class APID():
         self.ryaw = math.radians(yaw)
 
     def realUpdate(self, pos):
-        self.desx = pos[0]
-        self.desy = pos[1]
-        self.desz = pos[2]
-        self.desyaw = pos[3]
+        self.x = pos[0]
+        self.y = pos[1]
+        self.z = pos[2]
+        self.yaw = pos[3]
         self.ryaw = math.radians(pos[3])
 
     def setDes(self, x, y, z, yaw):
@@ -42,10 +44,12 @@ class APID():
         self.desyaw = desPos[3]
 
     def getVel(self):
+        print([self.desx, self.desy, self.desz, self.desyaw])
+        print([self.x, self.y, self.z, self.yaw])
         pre = [self.desx - self.x, self.desy - self.y]
-        trans = [pre[0] * math.cos(-self.ryaw) - pre[1] * math.sin(-self.ryaw), pre[0] * math.sin(-self.ryaw)
-                 + pre[1] * math.cos(-self.ryaw)]
-        trans.append(self.desz-self.z)
-        trans.append(self.desyaw - self.yaw)
+        trans = [pre[0] * math.cos(self.ryaw) - pre[1] * math.sin(self.ryaw), pre[0] * math.sin(self.ryaw)
+                 + pre[1] * math.cos(self.ryaw), self.desz - self.z, -(self.desyaw - self.yaw)]
+        print(trans)
         trans = list(np.around(np.array(trans), decimals=1))
+        print(trans)
         return trans
