@@ -19,12 +19,14 @@ def force_land():
             make_drones_stationary()
             # Land all drones
             send("land")
+            break
         if KeyPress.get_key("e"):
             print("Emergency landing initialized")
             # Make all drones stationary
             make_drones_stationary()
             # Stop all drones' motors immediately
             send("emergency")
+            break
 
 
 def make_drones_stationary():
@@ -91,10 +93,12 @@ def setup_drone(drone):
     initial_position = None
     while initial_position is None:
         initial_position = drone.sender.recv()
-    initial_position = np.array(initial_position)
+    initial_position = np.rint(np.array(initial_position[:4])).astype(int)
 
     # Create drone's controller
     drone.create_controller(initial_position)
+
+    print(f"Drone #{drone.number} is ready for flight")
 
 
 def fetch_position():
@@ -108,8 +112,7 @@ def fetch_position():
             received = drone.sender.recv()
             if received is not None:
                 marker_id = received[4]
-                current_position = received[:4]
-                current_position = np.rint(np.array(current_position))
+                current_position = np.rint(np.array(received[:4])).astype(int)
 
                 previous_position = previous_positions.get(drone)
                 deltas = np.absolute(current_position - previous_position)
@@ -170,14 +173,28 @@ def monitor():
         check_error()
 
 
+def send_dummy_command():
+    previous_time = time.time()
+    interval = 5
+    dummy_command = "command"
+
+    while True:
+        current_time = time.time()
+        if current_time - previous_time > interval:
+            print(f"Sending dummy command")
+            for drone in drones:
+                drone.send_dummy_command(dummy_command)
+            previous_time = current_time
+
+
 # Setup forced landing
 force_land_thread = Thread(target=force_land)
 force_land_thread.daemon = True
 force_land_thread.start()
 
 # Control parameters
-udp_ports = [11111, 11113]
-interface_names = ['wlxd03745f79670', 'wlxd0374572e205']
+udp_ports = [11111]  # 11113
+interface_names = ['wlxd03745f79670']  # wlxd0374572e205
 leader_initial_flightpath = []
 follower_offsets = [[-50, 0, 0, 0]]
 
@@ -191,6 +208,10 @@ drones.append(leader_drone)
 receive_thread = Thread(target=receive)
 receive_thread.daemon = True
 receive_thread.start()
+
+dummy_thread = Thread(target=send_dummy_command)
+dummy_thread.daemon = True
+dummy_thread.start()
 
 # Setup leader drone
 setup_drone(leader_drone)
@@ -223,7 +244,9 @@ while not in_formation:
         if not follower_drone.controller.completed_flightpath:
             in_formation = False
             break
+print(f"Swarm is in formation")
 
 # Start proper flight
+print(f"Start flight")
 leader_drone.controller.completed_flightpath = False
 monitor()

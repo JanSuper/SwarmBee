@@ -25,6 +25,13 @@ class Drone:
     def create_controller(self, initial_position):
         self.controller = FlightPathController(self, self.flightpath, self.offset, initial_position)
 
+    def send_dummy_command(self, dummy_command):
+        try:
+            self.socket.sendto(dummy_command.encode(), ('192.168.10.1', 8889))
+        except ValueError as e:
+            self.error = True
+            print("Error sending dummy command to drone #" + str(self.number) + ": " + str(e))
+
     def send(self, message):
         try:
             self.socket.sendto(message.encode(), ('192.168.10.1', 8889))

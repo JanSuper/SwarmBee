@@ -209,11 +209,12 @@ def detect(receiver, port, window_number):
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
 
     # Load camera calibration data
-    if not os.path.exists('./tello_calibration.pckl'):
+    absolute_path = '/home/swarmlab/PycharmProjects/SwarmBee/DroneSwarm/src/CV/tello_pose_experimentation/tello_calibration.pckl'
+    if not os.path.exists(absolute_path):
         print("Missing Tello camera calibration file: tello_calibration.pckl")
         exit()
     else:
-        f = open('tello_calibration.pckl', 'rb')
+        f = open(absolute_path, 'rb')
         (camera_matrix, distortion_coefficients, _, _) = pickle.load(f)
         f.close()
         if camera_matrix is None or distortion_coefficients is None:
@@ -278,12 +279,6 @@ def detect(receiver, port, window_number):
                 y = tvec[1]
                 z = tvec[2]
 
-                # drone white dot position in relation to the marker
-                # check if offsets are taken from wall or floor or temporary setup
-                drone_x = OFFSETS[marker_id][0] - x  # with coordinating
-                drone_y = OFFSETS[marker_id][1] - y  # with coordinating
-                drone_z = z  # for some reason height is fine without negation
-
                 # Create empty rotation matrix
                 rotation_matrix = np.zeros(shape=(3, 3))
 
@@ -294,12 +289,27 @@ def detect(receiver, port, window_number):
                 # We are most concerned with rotation around pitch axis which translates to Tello's yaw
                 ypr = cv2.RQDecomp3x3(rotation_matrix)
 
+                # Display the yaw/pitch/roll angles
+                yaw = ypr[0][2]
+
+                # drone white dot position in relation to the marker
+                # check if offsets are taken from wall or floor or temporary setup
+                # if yaw >= 0:
+                drone_x = OFFSETS[marker_id][0] - x  # with coordinating
+                # else:
+                #     drone_x = OFFSETS[marker_id][0] + x  # with coordinating
+
+                # if -90 <= yaw <= 90:
+                drone_y = OFFSETS[marker_id][1] + y  # with coordinating
+                # else:
+                #     drone_y = OFFSETS[marker_id][1] - y  # with coordinating
+                drone_z = z
+
                 # Display drone's position in space, and yaw relative to recognized marker
                 # position = "Drone pos. (id %d): x=%4.0f y=%4.0f z=%4.0f yaw=%4.0f"%(marker_id, dx, dy, dz, dyaw)
                 position = "Drone pos. (id %d): x=%4.0f y=%4.0f z=%4.0f" % (marker_id, drone_x, drone_y, drone_z)
                 cv2.putText(frame, position, (20, 650), font, 1, (255, 255, 255), 1, cv2.LINE_AA)
-                # Display the yaw/pitch/roll angles
-                yaw = ypr[0][2]
+
                 attitude2 = "Marker %d attitude: y=%4.0f p=%4.0f r=%4.0f" % (
                     marker_id, ypr[0][0], ypr[0][1], ypr[0][2])
                 cv2.putText(frame, attitude2, (20, 690), font, 1, (255, 255, 255), 1, cv2.LINE_AA)
