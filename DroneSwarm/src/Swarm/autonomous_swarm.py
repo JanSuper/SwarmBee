@@ -4,7 +4,6 @@
 import time
 import numpy as np
 from threading import Thread
-from multiprocessing import Process
 
 from DroneSwarm.src.Swarm.drone import Drone
 import DroneSwarm.src.Utilities.KeyPressModule as KeyPress
@@ -117,10 +116,10 @@ def fetch_position():
                 previous_position = previous_positions.get(drone)
                 deltas = np.absolute(current_position - previous_position)
                 if any(deltas[:] > 50):
-                    print(f"(ArUco) Drone #{drone.number}: averaged {current_position} and {previous_position}")
+                    # print(f"(ArUco) Drone #{drone.number}: averaged {current_position} and {previous_position}")
                     current_position = (current_position + previous_position) / 2
                 previous_positions[drone] = current_position
-                print(f"(ArUco) Drone #{drone.number}: current position = {current_position}")
+                # print(f"(ArUco) Drone #{drone.number}: current position = {current_position}")
 
                 if drone.controller.need_new_position:
                     drone.controller.trapezoid.set_position(current_position)
@@ -153,6 +152,7 @@ def monitor():
                     break
 
             if all_drones_completed_flightpath:
+                print(f"Need new flightpath")
                 # Update leader drone's flightpath
                 leader_drone.controller.need_new_flightpath = True
                 while leader_drone.controller.need_new_flightpath:
@@ -176,14 +176,20 @@ def monitor():
 def send_dummy_command():
     previous_time = time.time()
     interval = 5
-    dummy_command = "command"
+    dummy_command = "battery?"
 
     while True:
         current_time = time.time()
         if current_time - previous_time > interval:
-            print(f"Sending dummy command")
             for drone in drones:
-                drone.send_dummy_command(dummy_command)
+                if not setup_done:
+                    send_dummy = True
+                else:
+                    send_dummy = drone.controller.completed_flightpath
+
+                if send_dummy:
+                    print(f"Drone #{drone.number}: sending dummy command \"{dummy_command}\"")
+                    drone.send_dummy_command(dummy_command)
             previous_time = current_time
 
 
@@ -196,7 +202,7 @@ force_land_thread.start()
 udp_ports = [11111]  # 11113
 interface_names = ['wlxd03745f79670']  # wlxd0374572e205
 bluetooth_addresses = ['84:CC:A8:2F:E9:32']  # 84:CC:A8:2E:9C:B6, 9C:9C:1F:E1:B0:62
-leader_initial_flightpath = []
+leader_initial_flightpath = []  # [100, 0, 0, 0]
 follower_offsets = [[-50, 0, 0, 0]]
 
 drones = []
@@ -210,6 +216,7 @@ receive_thread = Thread(target=receive)
 receive_thread.daemon = True
 receive_thread.start()
 
+setup_done = False
 dummy_thread = Thread(target=send_dummy_command)
 dummy_thread.daemon = True
 dummy_thread.start()
@@ -232,8 +239,11 @@ while drone_number <= no_drones:
 for follower_drone in drones[1:]:
     setup_drone(follower_drone)
 
-p = Process(target=fetch_position)
-p.start()
+position_thread = Thread(target=fetch_position)
+position_thread.daemon = True
+position_thread.start()
+
+setup_done = True
 
 # Get followers into formation
 leader_drone.controller.completed_flightpath = True

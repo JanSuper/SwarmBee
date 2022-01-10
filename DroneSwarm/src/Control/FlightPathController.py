@@ -125,13 +125,13 @@ class FlightPathController:
         u = [0, 0, 0, 0]  # Assume the drone is to be stationary
         # Perform distance check and calculate velocities
         if not self.bluetooth.acceptL:
-            if check_for_interval(self.bluetooth.current_package[0], 0.0, bt_threshold):
+            if check_for_interval([self.bluetooth.current_package[0]], 0.0, bt_threshold):
                 u = self.calculate_u(method)
         elif not self.bluetooth.acceptF:
-            if check_for_interval(self.bluetooth.current_package[1], 0.0, bt_threshold):
+            if check_for_interval([self.bluetooth.current_package[1]], 0.0, bt_threshold):
                 u = self.calculate_u(method)
         elif not self.bluetooth.acceptR:
-            if check_for_interval(self.bluetooth.current_package[2], 0.0, bt_threshold):
+            if check_for_interval([self.bluetooth.current_package[2]], 0.0, bt_threshold):
                 u = self.calculate_u(method)
         elif self.bluetooth.accept:
             if check_for_interval(self.bluetooth.current_package, 0.0, bt_threshold):
