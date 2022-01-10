@@ -8,6 +8,7 @@ import os
 import pickle
 import numpy as np
 import time
+from DroneSwarm.src.Localization.Localisation import Localiser
 
 # Marker positions on floor (each marker has 50cm in between):
 
@@ -295,19 +296,24 @@ def detect(receiver, port, window_number):
                 # drone white dot position in relation to the marker
                 # check if offsets are taken from wall or floor or temporary setup
                 # if yaw >= 0:
-                drone_x = OFFSETS[marker_id][0] - x  # with coordinating
+                #     drone_x = OFFSETS[marker_id][0] - x  # with coordinating
                 # else:
                 #     drone_x = OFFSETS[marker_id][0] + x  # with coordinating
-
+                #
                 # if -90 <= yaw <= 90:
-                drone_y = OFFSETS[marker_id][1] + y  # with coordinating
+                #     drone_y = OFFSETS[marker_id][1] + y  # with coordinating
                 # else:
                 #     drone_y = OFFSETS[marker_id][1] - y  # with coordinating
+                loc = Localiser()
+                realPos = loc.calcPosFloor(x,y,z,yaw,[OFFSETS[marker_id][0],OFFSETS[marker_id][1]])
+                drone_x = realPos[0]
+                drone_y = realPos[1]
                 drone_z = z
 
                 # Display drone's position in space, and yaw relative to recognized marker
                 # position = "Drone pos. (id %d): x=%4.0f y=%4.0f z=%4.0f yaw=%4.0f"%(marker_id, dx, dy, dz, dyaw)
                 position = "Drone pos. (id %d): x=%4.0f y=%4.0f z=%4.0f" % (marker_id, drone_x, drone_y, drone_z)
+                # position = "Marker pos. (id %d): x=%4.0f y=%4.0f z=%4.0f" % (marker_id, x, y, z)
                 cv2.putText(frame, position, (20, 650), font, 1, (255, 255, 255), 1, cv2.LINE_AA)
 
                 attitude2 = "Marker %d attitude: y=%4.0f p=%4.0f r=%4.0f" % (

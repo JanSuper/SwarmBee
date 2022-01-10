@@ -21,15 +21,21 @@ class Localiser:
 
         #print(angle)
 
-        vlength = np.sqrt(arucoX^2 + arucoY^2)
+        vlength = np.sqrt(math.pow(x,2) + math.pow(y,2))
 
-        radYaw = r/180*np.pi
+        radYaw = math.radians(r)
 
-        newVector = [np.cos(angle - radYaw),np.sin(angle - radYaw)]
+        print("------")
+        print(vector_2)
+        print(angle)
+        print(radYaw)
 
-        realDistance = vlength/np.sqrt(newVector.dot(newVector))*newVector
+        realDistance = [x * math.cos(-radYaw) - y * math.sin(-radYaw),x * math.sin(-radYaw) + y *math.cos(-radYaw)]
 
-        realPos = [realDistance[0] + arucoX, realDistance[1] + arucoY]
+        print(realDistance)
+
+
+        realPos = [-realDistance[0] + arucoX, -realDistance[1] + arucoY]
 
         return realPos
 
