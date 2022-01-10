@@ -25,33 +25,32 @@ class Circle:
         self.theta_i = (drone_number-1)*self.theta
         self.drone_number = drone_number
         self.last_drone_pos = [self.radius, 0, 0, 0]
-
-    # def solve_for_x_y(self, p):
-    #     x, y = p
-    #     return x ** 2 + y ** 2 - self.radius ** 2, y - math.tan(self.theta_i) * x
+        self.lead_drone_position = lead_drone_position
 
     def calculate_starting_positions(self):
         u = [0, 0, 0, 0]
         x1 = Symbol('x')
         y1 = Symbol('y')
         # print(self.last_drone_pos)
-        print(math.degrees(self.theta_i))
+        # print(math.degrees(self.theta_i))
         # y1 - math.tan(self.theta_i) * x1
         x = round(self.radius*math.sin(self.theta_i))
         y = round(self.radius*math.cos(self.theta_i))
-        # x, y = nsolve((x1 ** 2 - self.radius ** 2 - y1**2, y1 - x1*math.tan(self.theta_i)), (x1, y1), (self.last_drone_pos[0], self.last_drone_pos[1]))
+        # x, y = nsolve((x1 ** 2 - self.radius ** 2 - y1**2, y1 - x1*math.tan(self.theta_i)), (x1, y1),
+        # (self.last_drone_pos[0], self.last_drone_pos[1]))
+
         self.last_drone_pos[0] = x
         self.last_drone_pos[1] = y
         self.drone_number += 1
         self.theta_i = (self.drone_number-1)*self.theta
         u[0], u[1] = x, y
-        print(f'u is {u}')
         return u
 
-    # TODO def face_center(self, drone_number):
+    # TODO def face_center(self):
+    # yaw drone i = round(180 mod (lead_drone yaw + degrees(theta_i)))
 
     # calculates the position of the center of orbit
-    def orbit_center_position(self, lead_drone_position):
+    def orbit_center_position(self):
         u = self.lead_drone_position
         u[0] = u[0+self.radius]
         return u
@@ -62,6 +61,7 @@ class Circle:
 
 
 if __name__ == "__main__":
-    circle = Circle([0, 0, 0, 0])
-    for i in range(4):
-        print(circle.calculate_starting_positions())
+    n_drones = 5
+    circle = Circle([0, 0, 0, 0], n_drones=n_drones)
+    for i in range(n_drones):
+        print(f'control order is {circle.calculate_starting_positions()}')

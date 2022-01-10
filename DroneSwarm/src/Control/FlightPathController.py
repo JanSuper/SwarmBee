@@ -3,7 +3,7 @@ import numpy as np
 from DroneSwarm.src.Control.Circle import Circle
 from DroneSwarm.src.Control.Trapezoid import Trapezoid
 from DroneSwarm.src.Utilities.tello_bluetooth_receiver import BackgroundBluetoothSensorRead
-
+from DroneSwarm.src.Control.ArucoPID import APID
 
 # Function to check if all the values of list1 are greater than val
 # If there exists a values less than val return False, else return True.
@@ -31,7 +31,7 @@ def check_for_interval(list1, lower, upper):
 
 class FlightPathController:
 
-    def __init__(self, drone, initial_position, bt_threshold=0.20, interval=0.1):
+    def __init__(self, drone, initial_position, bt_threshold=0.20, interval=0.1, method='Trapezoid'):
         self.drone = drone
         self.flightpath = drone.flightpath
         self.need_new_flightpath = False
@@ -58,6 +58,7 @@ class FlightPathController:
         self.bluetooth.start()
         time.sleep(3)  # Takes roughly three seconds before Bluetooth values start coming in
         self.interval = interval
+        self.pid = APID(initial_target)
 
     # Function that checks whether it is safe for the drone to perform takeoff
     def check_safe_for_takeoff(self):
@@ -66,6 +67,15 @@ class FlightPathController:
             time.sleep(5)
         print("The drone is in a safe location. Please stay clear of the drone.")
         time.sleep(10)
+
+    def fly_you_fool(self, method='Trapezoid'):
+        match method:
+            case 'Trapezoid':
+                self.fly_trapezoid()
+            case 'Circle':
+                self.fly_cricle()
+            case 'APID':
+                self.fly_pid()
 
     # Function that flies the drone by using the Trapezoid controller
     def fly_trapezoid(self):
@@ -111,6 +121,16 @@ class FlightPathController:
                 u = self.distance_check_calculate_u(0.01, method='Circle')
                 self.drone.send_rc(u)
 
+    def fly_pid(self):
+        previous_time = time.time()
+        while True:
+            now = time.time()
+            dt = now - previous_time
+            if dt > self.interval:
+                self.update_drone_position()
+                self.pid.realUpdate(self.initial_position)
+                u = self.distance_check_calculate_u(0.04, method='APID')
+
     # Function that request an external module to update the drone's current position
     def update_drone_position(self):
         # Send request to external module
@@ -139,7 +159,8 @@ class FlightPathController:
         else:
             # We do not have anything around and sensors are reading random values
             u = self.calculate_u(method)
-        u[2], u[3] = 0, 0  # TODO: remove once Trapezoid is more stable
+        if method != 'APID':
+            u[2], u[3] = 0, 0  # TODO: remove once Trapezoid is more stable
         return u
 
     # Function that allows to switch between different flight path routines
@@ -149,3 +170,6 @@ class FlightPathController:
                 return self.trapezoid.calculate()
             case 'Circle':
                 return self.circle.calculate_angular_velocity()
+            case 'APID':
+                return self.pid.getVel()
+
