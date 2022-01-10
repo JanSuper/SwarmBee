@@ -1,10 +1,37 @@
 import math
+import numpy as np
 
 
 class Localiser:
     def __init__(self):
         self.camAngle = 90
 
+
+    def calcPosFloor(self,x,y,z,r,offset):
+        arucoX = offset[0]
+        arucoY = offset[1]
+
+        vector_1 = [0, 1]
+        vector_2 = [x, y]
+
+        unit_vector_1 = vector_1 / np.linalg.norm(vector_1)
+        unit_vector_2 = vector_2 / np.linalg.norm(vector_2)
+        dot_product = np.dot(unit_vector_1, unit_vector_2)
+        angle = np.arccos(dot_product)
+
+        #print(angle)
+
+        vlength = np.sqrt(arucoX^2 + arucoY^2)
+
+        radYaw = r/180*np.pi
+
+        newVector = [np.cos(angle - radYaw),np.sin(angle - radYaw)]
+
+        realDistance = vlength/np.sqrt(newVector.dot(newVector))*newVector
+
+        realPos = [realDistance[0] + arucoX, realDistance[1] + arucoY]
+
+        return realPos
 
     def calcPosWallX(self,x,y,z,r,ArUcoID):
         #Method to calculate the position of the drone if the ArUco marker is posted on a wall parallel to the X axis
