@@ -61,6 +61,7 @@ class FlightPathController:
         time.sleep(3)  # Takes roughly three seconds before Bluetooth values start coming in
         self.interval = interval
         self.pid = APID(initial_target)
+        self.circle = Circle()
 
     # Function that checks whether it is safe for the drone to perform takeoff
     def check_safe_for_takeoff(self):
@@ -121,8 +122,11 @@ class FlightPathController:
             now = time.time()
             dt = now - previous_time
             if dt > self.interval:
+                self.update_drone_position()
+                self.circle.position = self.current_position
                 u = self.distance_check_calculate_u(0.01, method='Circle')
                 self.drone.send_rc(u)
+                previous_time = now
 
     def fly_pid(self):
         previous_time = time.time()

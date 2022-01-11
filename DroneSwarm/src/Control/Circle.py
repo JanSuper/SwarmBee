@@ -3,57 +3,53 @@ from scipy.optimize import fsolve
 import numpy as np
 from sympy import Symbol, nsolve, sqrt
 
+
 class Circle:
 
     # calculate the angular velocity given the speed and direction to spin in
     def calculate_angular_velocity(self):
         control = np.zeros(4, dtype=int)
         if self.clockwise:
-            control[0] = self.speed
+            control[1] = self.speed
         else:
-            control[0] = -1 * self.speed
-        angular_velocity = -1 * round(control[0] / self.radius)
+            control[1] = -1 * self.speed
+        print(math.degrees(control[1] / self.radius))
+        angular_velocity = round(math.degrees(control[1] / self.radius))
         control[3] = angular_velocity
         return control
 
-    def __init__(self, lead_drone_position, drone_number=1, speed=20, clockwise=True, radius=100, n_drones=4):
+    def __init__(self, drone_number=1, speed=50, clockwise=True, facing_center=False, in_position= False, radius=100, n_drones=4, center=None,
+                 position=None):
+        if position is None:
+            position = [0, 0, 0, 0]
+        if center is None:
+            center = [0, 0, 0, 0]
         self.speed = speed
         self.clockwise = clockwise
         self.radius = radius  # radius of the orbit path
         self.n_drones = n_drones  # the number of drones
         self.theta = math.radians(360)/self.n_drones
-        self.theta_i = (drone_number-1)*self.theta
         self.drone_number = drone_number
-        self.last_drone_pos = [self.radius, 0, 0, 0]
-        self.lead_drone_position = lead_drone_position
+        self.position = position
+        self.in_position = in_position
+        self.center_of_orbit = center
+        self.facing_center = facing_center
 
     def calculate_starting_positions(self):
-        u = [0, 0, 0, 0]
-        x1 = Symbol('x')
-        y1 = Symbol('y')
-        # print(self.last_drone_pos)
-        # print(math.degrees(self.theta_i))
-        # y1 - math.tan(self.theta_i) * x1
-        x = round(self.radius*math.sin(self.theta_i))
-        y = round(self.radius*math.cos(self.theta_i))
-        # x, y = nsolve((x1 ** 2 - self.radius ** 2 - y1**2, y1 - x1*math.tan(self.theta_i)), (x1, y1),
-        # (self.last_drone_pos[0], self.last_drone_pos[1]))
-
-        self.last_drone_pos[0] = x
-        self.last_drone_pos[1] = y
-        self.drone_number += 1
-        self.theta_i = (self.drone_number-1)*self.theta
-        u[0], u[1] = x, y
-        return u
+        starting_pos = [0, 0, 0, 0]
+        x = self.radius*math.cos((self.drone_number-1)*self.theta)
+        y = self.radius*math.sin((self.drone_number-1)*self.theta)
+        starting_pos[0], starting_pos[1] = x, y
+        return starting_pos
 
     # TODO def face_center(self):
-    # yaw drone i = round(180 mod (lead_drone yaw + degrees(theta_i)))
-
-    # calculates the position of the center of orbit
-    def orbit_center_position(self):
-        u = self.lead_drone_position
-        u[0] = u[0+self.radius]
-        return u
+    # def face_center(self):
+    #     if not self.in_position:
+    #         print('We are not in position (apparently)')
+    #         return [0, 0, 0, 0]
+    #     else:
+    #
+        # yaw_drone_i = 180 mod (lead_drone yaw + degrees(theta_i))
 
     # math.radians(360) = degrees to radians
     # math.degrees(2*math.pi) = radians to degrees
@@ -61,7 +57,11 @@ class Circle:
 
 
 if __name__ == "__main__":
-    n_drones = 5
-    circle = Circle([0, 0, 0, 0], n_drones=n_drones)
-    for i in range(n_drones):
-        print(f'control order is {circle.calculate_starting_positions()}')
+    n = 5
+    d = 1
+    circle = Circle(drone_number=d, n_drones=n)
+    print(f'circle speed is {circle.speed}')
+    for i in range(n):
+        print(f'Starting position is {circle.calculate_starting_positions()}')
+        print(f'control order(for angular vel) is {circle.calculate_angular_velocity()}')
+        circle.drone_number += 1
