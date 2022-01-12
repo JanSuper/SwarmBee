@@ -10,15 +10,15 @@ class Circle:
     def calculate_angular_velocity(self):
         control = [0, 0, 0, 0]
         if self.clockwise:
-            control[1] = self.speed
+            control[0] = -1 * self.speed
         else:
-            control[1] = -1 * self.speed
+            control[0] = self.speed
         print(math.degrees(control[1] / self.radius))
-        angular_velocity = round(math.degrees(control[1] / self.radius))
+        angular_velocity = -1 * round(math.degrees(control[1] / self.radius))
         control[3] = angular_velocity
         return control
 
-    def __init__(self, drone_number=1, speed=50, theta=360, clockwise=True, facing_center=False, in_position = False, radius=100, n_drones=4, center=None,
+    def __init__(self, drone_number=1, speed=50, theta=360, clockwise=False, facing_center=False, in_position = False, radius=100, n_drones=4, center=None,
                  position=None):
         if position is None:
             position = [0, 0, 0, 0]
