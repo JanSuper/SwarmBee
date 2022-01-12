@@ -5,6 +5,7 @@ from threading import Thread
 from bleak import BleakClient
 from bleak.exc import BleakError
 import time
+import bluetooth
 
 characteristic_uuid = "B5AF1711-6486-4104-8DBE-84B66CF6E1AD"
 var_threshold = 0.5
@@ -55,7 +56,7 @@ class BackgroundBluetoothSensorRead:
         self.stopped = True
         self.worker.join()
 
-    def wait_until_valid_value(self):
+    def wait_until_works(self):
         zero_package = [0, 0, 0]
         while self.current_package == zero_package:
             pass
@@ -173,8 +174,15 @@ if __name__ == "__main__":
     address_60FF08 = "9C:9C:1F:E1:B0:62"
     address_EDB02F = "84:CC:A8:2E:9C:B6"
 
+    # nearby_devices = bluetooth.discover_devices(lookup_names=True)
+    # print("Found {} devices.".format(len(nearby_devices)))
+    #
+    # for addr, name in nearby_devices:
+    #     print("  {} - {}".format(addr, name))
+
     bluetooth = BackgroundBluetoothSensorRead(address_EDAD6F)
     bluetooth.start()
+    bluetooth.wait_until_works()
 
     previous_time = time.time()
     interval = 0.1

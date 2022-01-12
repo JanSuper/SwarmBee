@@ -77,13 +77,16 @@ def stop_program():
 
 
 def setup_drone(drone):
-    # Perform takeoff
-    messages = ["command", "battery?", "streamoff", "streamon", "takeoff"]
+    # Enabled camera
+    messages = ["command", "battery?", "streamoff", "streamon"]
     for message in messages:
         print(f"Sending message to drone #{drone.number}: {message}")
         drone.send(message)
         while drone.busy:
             pass
+
+    # Perform controlled takeoff
+
 
     # Start drone's ArUco process
     drone.aruco.start()
@@ -199,9 +202,9 @@ force_land_thread.daemon = True
 force_land_thread.start()
 
 # Control parameters
-udp_ports = [11111, 11113, 11115]  # 11113, 11115
-interface_names = ['wlxd03745f79670', 'wlxd0374572e205', 'wlx6c5ab04a495e']  # wlxd0374572e205, wlx6c5ab04a495e
-bluetooth_addresses = ['84:CC:A8:2F:E9:32', '84:CC:A8:2E:9C:B6', '9C:9C:1F:E1:B0:62']  # 84:CC:A8:2E:9C:B6, 9C:9C:1F:E1:B0:62
+udp_ports = [11111]  # 11113, 11115
+interface_names = ['wlxd03745f79670']  # wlxd0374572e205, wlx6c5ab04a495e
+bluetooth_addresses = ['84:CC:A8:2F:E9:32']  # 84:CC:A8:2E:9C:B6, 9C:9C:1F:E1:B0:62
 leader_initial_flightpath = []
 follower_offsets = [[-50, -50, 0, 0], [-50, 50, 0, 0]]
 
