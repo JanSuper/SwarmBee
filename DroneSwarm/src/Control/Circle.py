@@ -8,7 +8,7 @@ class Circle:
 
     # calculate the angular velocity given the speed and direction to spin in
     def calculate_angular_velocity(self):
-        control = np.zeros(4, dtype=int)
+        control = [0, 0, 0, 0]
         if self.clockwise:
             control[1] = self.speed
         else:
@@ -18,7 +18,7 @@ class Circle:
         control[3] = angular_velocity
         return control
 
-    def __init__(self, drone_number=1, speed=50, clockwise=True, facing_center=False, in_position= False, radius=100, n_drones=4, center=None,
+    def __init__(self, drone_number=1, speed=50, clockwise=True, facing_center=False, in_position = False, radius=100, n_drones=4, center=None,
                  position=None):
         if position is None:
             position = [0, 0, 0, 0]
