@@ -33,7 +33,7 @@ def check_for_interval(list1, lower, upper):
 
 class FlightPathController:
 
-    def __init__(self, drone, initial_position, bt_threshold=0.20, interval=0.1, method='Trapezoid', max_speed=40):
+    def __init__(self, drone, initial_position, bt_threshold=0.20, interval=0.1, max_speed=40):
         self.drone = drone
         self.flightpath = drone.flightpath
         self.need_new_flightpath = False
@@ -60,7 +60,7 @@ class FlightPathController:
         self.bluetooth.start()
         time.sleep(3)  # TODO: change to 'bluetooth.wait_until_works()' once Bluetooth is fixed
         self.interval = interval
-        self.pid = APID(initial_target)
+        self.proportional = APID(initial_target)
         self.MAX_SPEED = max_speed
         self.circle = Circle(speed=self.MAX_SPEED)
 
@@ -76,10 +76,10 @@ class FlightPathController:
         match method:
             case 'Trapezoid':
                 self.fly_trapezoid()
+            case 'Proportional':
+                self.fly_proportional()
             case 'Circle':
-                self.fly_cricle()
-            case 'APID':
-                self.fly_pid()
+                self.fly_circle()
 
     # Function that flies the drone by using the Trapezoid controller
     def fly_trapezoid(self):
@@ -115,6 +115,40 @@ class FlightPathController:
                 self.drone.send_rc(u)
                 previous_time = now
 
+    # Function that flies the drone by using the Proportional controller
+    def fly_proportional(self):
+        previous_time = time.time()
+        while True:
+            self.update_drone_position()
+            self.proportional.realUpdate(self.current_position)
+
+            now = time.time()
+            dt = now - previous_time
+            if dt > self.interval:
+                u = [0, 0, 0, 0]  # Assume the drone is to be stationary; these values will only change if the drone
+                # has not reached its current target yet
+                if not self.completed_flightpath:
+                    calculate_u = False
+                    # Drone has not completed its flightpath yet
+                    if self.proportional.reachedTarget:
+                        # Drone has reached its current target
+                        if len(self.flightpath) > 0:
+                            # Flightpath contains at least one more target; update drone's target
+                            self.proportional.setDes(self.initial_position + np.array(self.flightpath.pop(0)))
+                            calculate_u = True
+                        else:
+                            # Flightpath has been completed
+                            self.completed_flightpath = True
+                    else:
+                        # Drone has not reached its current target
+                        calculate_u = True
+                    if calculate_u:
+                        # Calculate velocities using the Proportional controller
+                        u = self.distance_check_calculate_u(self.bt_threshold, method='Proportional')
+                # Send velocities to drone
+                self.drone.send_rc(u)
+                previous_time = now
+
     # Function that flies the drone in a circle
     # TODO: add leader-follower logic
     def fly_circle(self, radius=100, speed=20, clock_wise=True, avoid=False):
@@ -129,19 +163,6 @@ class FlightPathController:
                 self.drone.send_rc(u)
                 previous_time = now
 
-    def fly_pid(self):
-        previous_time = time.time()
-        while True:
-            now = time.time()
-            dt = now - previous_time
-            if dt > self.interval:
-                self.update_drone_position()
-                self.pid.realUpdate(self.current_position)
-                self.pid.distance_sensor = self.bluetooth.current_package
-                u = self.distance_check_calculate_u(0.04, method='APID')
-                self.drone.send_rc(u)
-                previous_time = now
-
     # Function that request an external module to update the drone's current position
     def update_drone_position(self):
         # Send request to external module
@@ -151,42 +172,42 @@ class FlightPathController:
             pass
 
     # Function that checks the distance sensors for values outside 'safe range' and calculates control command
-    # method = 'Trapezoid', 'Circle'
+    # method = 'Trapezoid', 'Proportional'
     def distance_check_calculate_u(self, bt_threshold, method='Trapezoid'):
         u = [0, 0, 0, 0]  # Assume the drone is to be stationary
         # Perform distance check and calculate velocities
         if not self.bluetooth.acceptL:
-            if check_for_interval([self.bluetooth.current_package[0]], 0.0, bt_threshold):
+            if check_for_interval([self.bluetooth.current_package[0]], 0.001, bt_threshold):
                 u = self.calculate_u(method)
         elif not self.bluetooth.acceptF:
-            if check_for_interval([self.bluetooth.current_package[1]], 0.0, bt_threshold):
+            if check_for_interval([self.bluetooth.current_package[1]], 0.001, bt_threshold):
                 u = self.calculate_u(method)
         elif not self.bluetooth.acceptR:
-            if check_for_interval([self.bluetooth.current_package[2]], 0.0, bt_threshold):
+            if check_for_interval([self.bluetooth.current_package[2]], 0.001, bt_threshold):
                 u = self.calculate_u(method)
         elif self.bluetooth.accept:
-            if check_for_interval(self.bluetooth.current_package, 0.0, bt_threshold):
+            if check_for_interval(self.bluetooth.current_package, 0.001, bt_threshold):
                 u = self.calculate_u(method)
         else:
             # We do not have anything around and sensors are reading random values
             u = self.calculate_u(method)
-        if method != 'APID':
+        if method == 'Trapezoid':
             u[2], u[3] = 0, 0  # TODO: remove once Trapezoid is more stable
         return u
 
-    # Function that allows to switch between different flight path routines
+    # Function that calculates u
     def calculate_u(self, method='Trapezoid'):
         match method:
             case 'Trapezoid':
                 return self.trapezoid.calculate()
+            case 'Proportional':
+                return self.proportional.getVel()
             case 'Circle':
                 return self.circle.calculate_angular_velocity()
-            case 'APID':
-                return self.pid.getVel()
 
     def point_from_relative_position(self):
         pos = self.current_position
-        sens = self.bluetooth
+        sens = self.bluetooth.current_package
 
         x = sens[1]*100*math.cos(math.radians(90-pos[3]))
         y = sens[1]*100*math.sin(math.radians(90-pos[3]))
@@ -203,7 +224,7 @@ class FlightPathController:
                 x = self.MAX_SPEED*math.cos(math.radians(self.current_position[3]))
                 y = self.MAX_SPEED*math.sin(math.radians(self.current_position[3]))
                 magnitude = math.sqrt(obstacle[0]**2 + obstacle[1**2])
-                self.cirlce.radius = magnitude/2
+                self.circle.radius = magnitude/2
                 self.circle.theta = math.radians(180)
                 self.circle.speed = x
                 control = self.circle.calculate_angular_velocity()
