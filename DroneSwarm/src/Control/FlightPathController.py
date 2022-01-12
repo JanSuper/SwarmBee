@@ -59,7 +59,7 @@ class FlightPathController:
         self.bluetooth = BackgroundBluetoothSensorRead(drone.bt_address)
         self.bt_threshold = bt_threshold
         self.bluetooth.start()
-        time.sleep(3)  # Takes roughly three seconds before Bluetooth values start coming in
+        time.sleep(3)  # TODO: change to 'bluetooth.wait_until_works()' once Bluetooth is fixed
         self.interval = interval
         self.pid = APID(initial_target)
         self.circle = Circle()

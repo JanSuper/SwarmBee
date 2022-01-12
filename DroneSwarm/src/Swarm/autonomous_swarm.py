@@ -85,6 +85,15 @@ def setup_drone(drone):
         while drone.busy:
             pass
 
+    # Perform controlled takeoff (not working)
+    # takeoff_speed = 20  # cm/s
+    # takeoff_height = 50  # cm
+    # takeoff_start = time.time()
+    # drone.send_rc([0, 0, takeoff_speed, 0])
+    # while (time.time() - takeoff_start) < (takeoff_height / takeoff_speed):
+    #     pass
+    # drone.send_rc([0, 0, 0, 0])
+
     # Start drone's ArUco process
     drone.aruco.start()
 
@@ -188,7 +197,7 @@ def send_dummy_command():
                     send_dummy = drone.controller.completed_flightpath
 
                 if send_dummy:
-                    print(f"Drone #{drone.number}: sending dummy command \"{dummy_command}\"")
+                    # print(f"Drone #{drone.number}: sending dummy command \"{dummy_command}\"")
                     drone.send_dummy_command(dummy_command)
             previous_time = current_time
 
@@ -199,11 +208,11 @@ force_land_thread.daemon = True
 force_land_thread.start()
 
 # Control parameters
-udp_ports = [11111]  # 11113
-interface_names = ['wlxd03745f79670']  # wlxd0374572e205
+udp_ports = [11111]  # 11113, 11115
+interface_names = ['wlxd03745f79670']  # wlxd0374572e205, wlx6c5ab04a495e
 bluetooth_addresses = ['84:CC:A8:2F:E9:32']  # 84:CC:A8:2E:9C:B6, 9C:9C:1F:E1:B0:62
-leader_initial_flightpath = [[100, 0, 0, 0], [100, 100, 0, 0]]  # [100, 0, 0, 0]
-follower_offsets = [[-50, 0, 0, 0]]
+leader_initial_flightpath = []
+follower_offsets = [[-50, -50, 0, 0], [-50, 50, 0, 0]]
 
 drones = []
 # Create leader drone
@@ -246,18 +255,18 @@ position_thread.start()
 setup_done = True
 
 # Get followers into formation
-leader_drone.controller.completed_flightpath = True
-start_flying()
-in_formation = False
-while not in_formation:
-    in_formation = True
-    for follower_drone in drones[1:]:
-        if not follower_drone.controller.completed_flightpath:
-            in_formation = False
-            break
-print(f"Swarm is in formation")
+# leader_drone.controller.completed_flightpath = True
+# start_flying()
+# in_formation = False
+# while not in_formation:
+#     in_formation = True
+#     for follower_drone in drones[1:]:
+#         if not follower_drone.controller.completed_flightpath:
+#             in_formation = False
+#             break
+# print(f"Swarm is in formation")
 
 # Start proper flight
-print(f"Start flight")
-leader_drone.controller.completed_flightpath = False
-monitor()
+# print(f"Start flight")
+# leader_drone.controller.completed_flightpath = False
+# monitor()
