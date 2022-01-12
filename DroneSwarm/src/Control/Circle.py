@@ -18,7 +18,7 @@ class Circle:
         control[3] = angular_velocity
         return control
 
-    def __init__(self, drone_number=1, speed=50, clockwise=True, facing_center=False, in_position = False, radius=100, n_drones=4, center=None,
+    def __init__(self, drone_number=1, speed=50, theta=360, clockwise=True, facing_center=False, in_position = False, radius=100, n_drones=4, center=None,
                  position=None):
         if position is None:
             position = [0, 0, 0, 0]
@@ -28,7 +28,7 @@ class Circle:
         self.clockwise = clockwise
         self.radius = radius  # radius of the orbit path
         self.n_drones = n_drones  # the number of drones
-        self.theta = math.radians(360)/self.n_drones
+        self.theta = math.radians(theta)/self.n_drones
         self.drone_number = drone_number
         self.position = position
         self.in_position = in_position
@@ -54,6 +54,19 @@ class Circle:
     # math.radians(360) = degrees to radians
     # math.degrees(2*math.pi) = radians to degrees
     # math.sin/cos(radians)
+
+    # might not need it but calculates distance travelled given a sector's radius and radians.
+    def arc(self, radians=True):
+        if self.diameter:
+            r = self.radius/2
+        else:
+            r = self.radius
+        if radians:
+            theta = self.angle
+        else:
+            theta = math.radians(self.angle)
+        s = r*theta
+        return s
 
 
 if __name__ == "__main__":

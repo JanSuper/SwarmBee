@@ -1,9 +1,10 @@
 import time
 import numpy as np
-from DroneSwarm.src.Control.Circle import Circle
+import math
 from DroneSwarm.src.Control.Trapezoid import Trapezoid
 from DroneSwarm.src.Utilities.tello_bluetooth_receiver import BackgroundBluetoothSensorRead
 from DroneSwarm.src.Control.ArucoPID import APID
+from DroneSwarm.src.Control.Circle import Circle
 
 
 # Function to check if all the values of list1 are greater than val
@@ -136,6 +137,7 @@ class FlightPathController:
             if dt > self.interval:
                 self.update_drone_position()
                 self.pid.realUpdate(self.current_position)
+                self.pid.distance_sensor = self.bluetooth.current_package
                 u = self.distance_check_calculate_u(0.04, method='APID')
                 self.drone.send_rc(u)
                 previous_time = now
@@ -181,3 +183,16 @@ class FlightPathController:
                 return self.circle.calculate_angular_velocity()
             case 'APID':
                 return self.pid.getVel()
+
+    def point_from_relative_position(self):
+        pos = self.current_position
+        sens = self.bluetooth
+
+        x = sens[1]*100*math.cos(math.radians(90-pos[3]))
+        y = sens[1]*100*math.sin(math.radians(90-pos[3]))
+
+        pos[0] += x
+        pos[1] += y
+
+        return pos
+
