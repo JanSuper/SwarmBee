@@ -3,11 +3,13 @@ import mediapipe as mp
 import time
 import math
 import imutils
+import socket
 
 from queue import Queue
 
 
 class handDetector():
+
     def __init__(self, mode=False, maxHands=1, modelComplexity=1, detectionCon=0.5, trackCon=0.5):
         self.mode = mode
         self.maxHands = maxHands
@@ -20,7 +22,6 @@ class handDetector():
                                         self.trackCon)
         self.tipIds = [4, 8, 12, 16, 20]
         self.fingers = []
-
         self.rectSizes = Queue(maxsize=100)
         self.max_width, self.min_width, self.max_height, self.min_height = 0, 1000, 0, 1000
         self.spinCommand = False
@@ -56,7 +57,7 @@ class handDetector():
             bbox = xmin, ymin, xmax, ymax
             # print("bbox x width: " + str(xmax-xmin) + "  y length: " + str(ymax-ymin))
             if self.pointUp is True:  # only save rect sizes if finger pointing up
-                self.modifyRecSizeQueue(xmax-xmin, ymax-ymin)
+                self.modifyRecSizeQueue(xmax - xmin, ymax - ymin)
             else:  # clear queue if other gestures shown and clear max min values
                 self.rectSizes = Queue(maxsize=100)
                 self.max_width, self.min_width, self.max_height, self.min_height = 0, 1000, 0, 1000
@@ -72,14 +73,14 @@ class handDetector():
 
         orientation = self.Orientation()
         self.fingers.append(orientation)
-        if orientation == 0: #pointing up
+        if orientation == 0:  # pointing up
             # Thumb
             if self.lmList[0][1] < self.lmList[1][1]:  # thumb pointing right
                 if self.lmList[self.tipIds[0]][1] > self.lmList[self.tipIds[0] - 1][1]:
                     self.fingers.append(2)
                 else:
                     self.fingers.append(0)
-            else: # thumb pointing left
+            else:  # thumb pointing left
                 if self.lmList[self.tipIds[0]][1] < self.lmList[self.tipIds[0] - 1][1]:
                     self.fingers.append(1)
                 else:
@@ -90,7 +91,7 @@ class handDetector():
                     self.fingers.append(1)
                 else:
                     self.fingers.append(0)
-        elif orientation == 1: #pointing left
+        elif orientation == 1:  # pointing left
             # Thumb
             if self.lmList[0][2] < self.lmList[1][2]:  # thumb pointing right
                 if self.lmList[self.tipIds[0]][2] > self.lmList[self.tipIds[0] - 1][2]:
@@ -108,14 +109,14 @@ class handDetector():
                     self.fingers.append(1)
                 else:
                     self.fingers.append(0)
-        elif orientation == 2: #pointing down
+        elif orientation == 2:  # pointing down
             # Thumb
-            if self.lmList[0][1] > self.lmList[1][1]: #thumb pointing up
+            if self.lmList[0][1] > self.lmList[1][1]:  # thumb pointing up
                 if self.lmList[self.tipIds[0]][1] < self.lmList[self.tipIds[0] - 1][1]:
                     self.fingers.append(1)
                 else:
                     self.fingers.append(0)
-            else: #thumb pointing down
+            else:  # thumb pointing down
                 if self.lmList[self.tipIds[0]][1] > self.lmList[self.tipIds[0] - 1][1]:
                     self.fingers.append(2)
                 else:
@@ -126,7 +127,7 @@ class handDetector():
                     self.fingers.append(1)
                 else:
                     self.fingers.append(0)
-        elif orientation == 3: #pointing right
+        elif orientation == 3:  # pointing right
             # Thumb
             if self.lmList[0][2] < self.lmList[1][2]:  # thumb pointing down
                 if self.lmList[self.tipIds[0]][2] > self.lmList[self.tipIds[0] - 1][2]:
@@ -147,17 +148,17 @@ class handDetector():
 
         return self.fingers
 
-    #Method that finds the orientation of the hand
+    # Method that finds the orientation of the hand
     def Orientation(self):
         # 0 = pointing up
         # 1 = pointing left
         # 2 = pointing down
         # 3 = pointing right
 
-        yCoorList = [self.lmList[5][2],self.lmList[9][2],self.lmList[13][2],self.lmList[17][2]]
+        yCoorList = [self.lmList[5][2], self.lmList[9][2], self.lmList[13][2], self.lmList[17][2]]
         ymax, ymin = max(yCoorList), min(yCoorList)
 
-        if ymin-20 < self.lmList[0][2] < ymax+20:
+        if ymin - 20 < self.lmList[0][2] < ymax + 20:
             if self.lmList[0][1] < self.lmList[5][1]:
                 print("Pointing right")
                 return 3
@@ -176,43 +177,43 @@ class handDetector():
         self.pointUp = False
         print(self.fingers[1:])
         f = self.fingers[1:]
-        if f == [0,0,0,0,0]:
+        if f == [0, 0, 0, 0, 0]:
             return "fist"
 
-        if self.fingers[0] == 0: #hand pointing up
-            if f == [1,1,1,1,1] or f == [2,1,1,1,1]:
+        if self.fingers[0] == 0:  # hand pointing up
+            if f == [1, 1, 1, 1, 1] or f == [2, 1, 1, 1, 1]:
                 self.spinCommand = False
                 # TODO make so that only "stop" command stops the spin tracking of the drone(s)
                 return "stop"
-            elif f == [0,1,0,0,0] or f == [1,1,0,0,0] or f == [2,1,0,0,0]:
+            elif f == [0, 1, 0, 0, 0] or f == [1, 1, 0, 0, 0] or f == [2, 1, 0, 0, 0]:
                 self.pointUp = True
                 if self.spinCommand is True:
                     return "ACTIVATE SPIN"
                 return "point up"
-            elif f == [0,0,1,0,0]:
+            elif f == [0, 0, 1, 0, 0]:
                 return "offensive"
-            elif f == [1,0,1,0,0]:
+            elif f == [1, 0, 1, 0, 0]:
                 return "offensive"
-            elif f == [2,0,1,0,0]:
+            elif f == [2, 0, 1, 0, 0]:
                 return "offensive"
-            elif f == [0,1,0,0,1]:
+            elif f == [0, 1, 0, 0, 1]:
                 return "rock"
-        elif self.fingers[0] == 1: #hand pointing left
-            if f == [2,0,0,0,0]:
+        elif self.fingers[0] == 1:  # hand pointing left
+            if f == [2, 0, 0, 0, 0]:
                 return "thumbs down"
-            elif f == [1,0,0,0,0]:
+            elif f == [1, 0, 0, 0, 0]:
                 return "thumbs up"
-            elif f == [0,1,0,0,0] or f == [1,1,0,0,0] or f == [2,1,0,0,0]:
+            elif f == [0, 1, 0, 0, 0] or f == [1, 1, 0, 0, 0] or f == [2, 1, 0, 0, 0]:
                 return "point left"
-        elif self.fingers[0] == 2: #hand pointing down
-            if f == [0,1,0,0,0] or f == [1,1,0,0,0] or f == [2,1,0,0,0]:
+        elif self.fingers[0] == 2:  # hand pointing down
+            if f == [0, 1, 0, 0, 0] or f == [1, 1, 0, 0, 0] or f == [2, 1, 0, 0, 0]:
                 return "pointing down"
-        elif self.fingers[0] == 3: #hand pointing right
-            if f == [2,0,0,0,0]:
+        elif self.fingers[0] == 3:  # hand pointing right
+            if f == [2, 0, 0, 0, 0]:
                 return "thumbs down"
-            elif f == [1,0,0,0,0]:
+            elif f == [1, 0, 0, 0, 0]:
                 return "thumbs up"
-            elif f == [0,1,0,0,0] or f == [1,1,0,0,0] or f == [2,1,0,0,0]:
+            elif f == [0, 1, 0, 0, 0] or f == [1, 1, 0, 0, 0] or f == [2, 1, 0, 0, 0]:
                 return "pointing right"
 
     def findDistance(self, p1, p2, img, draw=True):
@@ -260,26 +261,46 @@ class handDetector():
         # print(self.rectSizes.qsize())
 
 
+def execute_gesture(gesture):
+    if gesture == "pointing up":
+        drone.sendto("rc 0 0 10 0".encode(), ('192.168.10.1', 8889))
+    elif gesture == "pointing left":
+        drone.sendto("rc -10 0 0 0".encode(), ('192.168.10.1', 8889))
+    elif gesture == "pointing right":
+        drone.sendto("rc 10 0 0 0".encode(), ('192.168.10.1', 8889))
+    else:
+        drone.sendto("rc 0 0 0 0".encode(), ('192.168.10.1', 8889))
+
+
 def main():
-    pTime = 0
     cap = cv2.VideoCapture(0)
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
     detector = handDetector()
+    previous_gesture = None
     while True:
         success, img = cap.read()
         img = imutils.resize(img, height=480)
         img = detector.findHands(img)
-        lmList = detector.findPosition(img)
+        lmList, bbox = detector.findPosition(img, draw=True)
         if len(lmList) != 0:
-            # print(lmList[4])
-            cTime = time.time()
-            fps = 1 / (cTime - pTime)
-            pTime = cTime
-        cv2.putText(img, str(int(fps)), (10, 70), cv2.FONT_HERSHEY_PLAIN, 3, (255, 0, 255), 3)
+            fingers = detector.fingersUp()
+            # print(fingers)
+            current_gesture = detector.gestureFinder()
+            cv2.putText(img, f'{current_gesture}', (bbox[0], bbox[3] + 60), cv2.FONT_HERSHEY_COMPLEX,
+                        1, (0, 0, 255), 3)
+            if current_gesture != previous_gesture:
+                execute_gesture(current_gesture)
+            previous_gesture = current_gesture
         cv2.imshow("Image", img)
         cv2.waitKey(1)
 
 
-if __name__ == "__main__":
-    main()
+drone = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+drone.setsockopt(socket.SOL_SOCKET, 25, 'wlxd03745f79670'.encode())
+drone.bind(('', 9000))
+
+drone.sendto("command".encode(), ('192.168.10.1', 8889))
+drone.sendto("takeoff".encode(), ('192.168.10.1', 8889))
+time.sleep(5)
+main()
