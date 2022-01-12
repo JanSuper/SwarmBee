@@ -5,7 +5,7 @@ from threading import Thread
 from bleak import BleakClient
 from bleak.exc import BleakError
 import time
-import bluetooth
+# import bluetooth
 
 characteristic_uuid = "B5AF1711-6486-4104-8DBE-84B66CF6E1AD"
 var_threshold = 0.5
