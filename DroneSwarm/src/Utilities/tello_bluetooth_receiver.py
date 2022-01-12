@@ -55,6 +55,11 @@ class BackgroundBluetoothSensorRead:
         self.stopped = True
         self.worker.join()
 
+    def wait_until_valid_value(self):
+        zero_package = [0, 0, 0]
+        while self.current_package == zero_package:
+            pass
+
 
 class Package:
 
@@ -164,11 +169,11 @@ class Connection:
 
 
 if __name__ == "__main__":
-    address_EDAD6F = '84:CC:A8:2F:E9:32'
+    address_EDAD6F = "84:CC:A8:2F:E9:32"
     address_60FF08 = "9C:9C:1F:E1:B0:62"
     address_EDB02F = "84:CC:A8:2E:9C:B6"
 
-    bluetooth = BackgroundBluetoothSensorRead(address_60FF08)
+    bluetooth = BackgroundBluetoothSensorRead(address_EDAD6F)
     bluetooth.start()
 
     previous_time = time.time()
