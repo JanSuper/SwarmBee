@@ -18,6 +18,8 @@ class APID():
         self.ryaw = ryaw
 
         self.reachedTarget = False
+        self.obstacleFound = False
+        self.obstacleList = [[0,0],[0,0],[0,0]]
 
     def realUpdate(self, x, y, z, yaw):
         self.x = x
@@ -56,11 +58,16 @@ class APID():
 
         MAX_DISTANCE = math.sqrt(75)
 
-        self.reachedTarget = math.sqrt(diffX**2, diffY**2, diffZ**2) <= MAX_DISTANCE
+        self.reachedTarget = math.sqrt(diffX**2 + diffY**2 + diffZ**2) <= MAX_DISTANCE
+
+    def setObstacle(self, list):
+        self.obstacleFound = True
+        self.obstacleList = list
+
 
     def getVel(self):
-        print([self.desx, self.desy, self.desz, self.desyaw])
-        print([self.x, self.y, self.z, self.yaw])
+        # print([self.desx, self.desy, self.desz, self.desyaw])
+        # print([self.x, self.y, self.z, self.yaw])
         pre = [self.desx - self.x, self.desy - self.y]
         x = pre[0] * math.cos(self.ryaw) - pre[1] * math.sin(self.ryaw)
         y = pre[0] * math.sin(self.ryaw) + pre[1] * math.cos(self.ryaw)
@@ -68,7 +75,61 @@ class APID():
         trans = [x, y, self.desz - self.z, yawVel]
         # trans = [pre[0] * math.cos(self.ryaw) - pre[1] * math.sin(self.ryaw), pre[0] * math.sin(self.ryaw)
         #          + pre[1] * math.cos(self.ryaw), self.desz - self.z, -(self.desyaw - self.yaw)]
-        print(trans)
+        # print(trans)
         trans = list(np.around(np.array(trans), decimals=1))
-        print(trans)
+        # print(trans)
+        if self.obstacleFound:
+            trans = self.avoidObstacles(trans)
         return trans
+
+
+    def avoidObstacles(self,trans):
+        # TRANSPOSE ALL THE THINGS
+        print("There are obstacles")
+        panic = False
+        speed = math.sqrt(trans[0] ** 2 + trans[1] ** 2)
+        for pos in self.obstacleList:
+            print("new pos")
+            diffX = self.x - pos[0]
+            diffY = self.y - pos[1]
+            dis = math.sqrt(diffX ** 2 + diffY ** 2)
+            rddAngle = math.atan2(-diffX, -diffY)
+            rtAngle = math.atan2(trans[0],trans[1])
+            if dis < 20: # PANIC
+                print("PANIC")
+                if panic:
+                    print("MULTIPLE PANIC")
+                    trans[0] += diffX
+                    trans[1] += diffY
+                else:
+                    print("FIRST PANIC")
+                    panic = True
+                    trans = [diffX,diffY]
+                    print(trans)
+            elif abs(rddAngle - rtAngle) >= .5*math.pi:
+                print("flying in opposite direction so it's safe")
+                pass
+            elif 20 <= dis <= 60 and not panic: # curve around
+                print("Curvy")
+                rAngle = math.atan2(diffX, diffY)
+                if rddAngle == rtAngle:
+                    rAngle -= 0.05*math.pi
+                x = trans[0] * math.cos(rAngle) - trans[1] * math.sin(rAngle)
+                trans = [x,0]
+                x = trans[0] * math.cos(-rAngle) - trans[1] * math.sin(-rAngle)
+                y = trans[0] * math.sin(-rAngle) + trans[1] * math.cos(-rAngle)
+                trans = [x,y]
+            else:
+                print("It's fine")
+                pass
+        return trans
+
+
+def main():
+    pid = APID([0,-100,0,0])
+    pid.setObstacle([[0,-20]])
+    pid.realUpdate([0,0,0,0])
+    print(pid.getVel())
+
+if __name__ == "__main__":
+    main()
