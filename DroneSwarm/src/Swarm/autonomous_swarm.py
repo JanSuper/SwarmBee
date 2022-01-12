@@ -77,16 +77,22 @@ def stop_program():
 
 
 def setup_drone(drone):
-    # Enabled camera
-    messages = ["command", "battery?", "streamoff", "streamon"]
+    # Perform takeoff
+    messages = ["command", "battery?", "streamoff", "streamon", "takeoff"]
     for message in messages:
         print(f"Sending message to drone #{drone.number}: {message}")
         drone.send(message)
         while drone.busy:
             pass
 
-    # Perform controlled takeoff
-
+    # Perform controlled takeoff (not working)
+    # takeoff_speed = 20  # cm/s
+    # takeoff_height = 50  # cm
+    # takeoff_start = time.time()
+    # drone.send_rc([0, 0, takeoff_speed, 0])
+    # while (time.time() - takeoff_start) < (takeoff_height / takeoff_speed):
+    #     pass
+    # drone.send_rc([0, 0, 0, 0])
 
     # Start drone's ArUco process
     drone.aruco.start()
@@ -261,6 +267,6 @@ setup_done = True
 # print(f"Swarm is in formation")
 
 # Start proper flight
-print(f"Start flight")
-leader_drone.controller.completed_flightpath = False
-monitor()
+# print(f"Start flight")
+# leader_drone.controller.completed_flightpath = False
+# monitor()
