@@ -160,36 +160,39 @@ class handDetector():
 
         if ymin - 20 < self.lmList[0][2] < ymax + 20:
             if self.lmList[0][1] < self.lmList[5][1]:
-                print("Pointing right")
+                # print("Pointing right")
                 return 3
             else:
-                print("pointing left")
+                # print("pointing left")
                 return 1
         else:
             if self.lmList[0][2] > self.lmList[5][2]:
-                print("pointing up")
+                # print("pointing up")
                 return 0
             else:
-                print("pointing down")
+                # print("pointing down")
                 return 2
 
     def gestureFinder(self):
-        self.pointUp = False
-        print(self.fingers[1:])
+        # print(self.fingers[1:])
         f = self.fingers[1:]
         if f == [0, 0, 0, 0, 0]:
-            return "fist"
+            return "land"
 
         if self.fingers[0] == 0:  # hand pointing up
             if f == [1, 1, 1, 1, 1] or f == [2, 1, 1, 1, 1]:
-                self.spinCommand = False
                 # TODO make so that only "stop" command stops the spin tracking of the drone(s)
                 return "stop"
+            elif f == [1, 0, 0, 0, 1]:
+                return "go forward"
+            elif f == [2, 0, 0, 0, 1]:
+                return "go backward"
             elif f == [0, 1, 0, 0, 0] or f == [1, 1, 0, 0, 0] or f == [2, 1, 0, 0, 0]:
-                self.pointUp = True
-                if self.spinCommand is True:
-                    return "ACTIVATE SPIN"
-                return "point up"
+                return "go up"
+            elif f == [2, 0, 0, 0, 0]:
+                return "spin left"
+            elif f == [1, 0, 0, 0, 0]:
+                return "spin right"
             elif f == [0, 0, 1, 0, 0]:
                 return "offensive"
             elif f == [1, 0, 1, 0, 0]:
@@ -204,17 +207,17 @@ class handDetector():
             elif f == [1, 0, 0, 0, 0]:
                 return "thumbs up"
             elif f == [0, 1, 0, 0, 0] or f == [1, 1, 0, 0, 0] or f == [2, 1, 0, 0, 0]:
-                return "point left"
+                return "go left"
         elif self.fingers[0] == 2:  # hand pointing down
             if f == [0, 1, 0, 0, 0] or f == [1, 1, 0, 0, 0] or f == [2, 1, 0, 0, 0]:
-                return "pointing down"
+                return "go down"
         elif self.fingers[0] == 3:  # hand pointing right
             if f == [2, 0, 0, 0, 0]:
                 return "thumbs down"
             elif f == [1, 0, 0, 0, 0]:
                 return "thumbs up"
             elif f == [0, 1, 0, 0, 0] or f == [1, 1, 0, 0, 0] or f == [2, 1, 0, 0, 0]:
-                return "pointing right"
+                return "go right"
 
     def findDistance(self, p1, p2, img, draw=True):
         x1, y1 = self.lmList[p1][1], self.lmList[p1][2]
@@ -247,11 +250,11 @@ class handDetector():
         self.rectSizes.put([width, height])
         diff_width = self.max_width - self.min_width
         diff_height = self.max_height - self.min_width
-        print("Diff width: " + str(diff_width))
-        print("Diff height: " + str(diff_height))
+        # print("Diff width: " + str(diff_width))
+        # print("Diff height: " + str(diff_height))
         # TODO need to define accurate tresholds for activation (do experiments)
         if diff_width > 75 and diff_height > 200:  # activate spin command and clear queue and max min values
-            print("Activate spin command")
+            # print("Activate spin command")
             self.spinCommand = True
             self.rectSizes = Queue(maxsize=100)
             self.max_width, self.min_width, self.max_height, self.min_height = 0, 1000, 0, 1000
@@ -262,14 +265,27 @@ class handDetector():
 
 
 def execute_gesture(gesture):
-    if gesture == "pointing up":
-        drone.sendto("rc 0 0 10 0".encode(), ('192.168.10.1', 8889))
-    elif gesture == "pointing left":
-        drone.sendto("rc -10 0 0 0".encode(), ('192.168.10.1', 8889))
-    elif gesture == "pointing right":
-        drone.sendto("rc 10 0 0 0".encode(), ('192.168.10.1', 8889))
+    velocity = 15
+    if gesture == "go left":
+        drone.sendto(f"rc -{velocity} 0 0 0".encode(), ('192.168.10.1', 8889))
+    elif gesture == "go right":
+        drone.sendto(f"rc {velocity} 0 0 0".encode(), ('192.168.10.1', 8889))
+    elif gesture == "go backward":
+        drone.sendto(f"rc 0 -{velocity} 0 0".encode(), ('192.168.10.1', 8889))
+    elif gesture == "go forward":
+        drone.sendto(f"rc 0 {velocity} 0 0".encode(), ('192.168.10.1', 8889))
+    elif gesture == "go down":
+        drone.sendto(f"rc 0 0 -{velocity} 0".encode(), ('192.168.10.1', 8889))
+    elif gesture == "go up":
+        drone.sendto(f"rc 0 0 {velocity} 0".encode(), ('192.168.10.1', 8889))
+    elif gesture == "spin left":
+        drone.sendto(f"rc 0 0 0 -{velocity}".encode(), ('192.168.10.1', 8889))
+    elif gesture == "spin right":
+        drone.sendto(f"rc 0 0 0 {velocity}".encode(), ('192.168.10.1', 8889))
+    elif gesture == "land":
+        drone.sendto("land".encode(), ('192.168.10.1', 8889))
     else:
-        drone.sendto("rc 0 0 0 0".encode(), ('192.168.10.1', 8889))
+        drone.sendto(f"rc 0 0 0 0".encode(), ('192.168.10.1', 8889))
 
 
 def main():
