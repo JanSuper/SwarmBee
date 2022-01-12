@@ -33,12 +33,11 @@ def check_for_interval(list1, lower, upper):
 
 class FlightPathController:
 
-    def __init__(self, drone, initial_position, bt_threshold=0.20, interval=0.1, method='Trapezoid'):
+    def __init__(self, drone, initial_position, bt_threshold=0.20, interval=0.1, method='Trapezoid', max_speed=40):
         self.drone = drone
         self.flightpath = drone.flightpath
         self.need_new_flightpath = False
         self.offset = drone.offset  # offset to the leader = [dx, dy, dz, dyaw]
-        # self.circle = Circle()
         self.trapezoid = Trapezoid()
         self.initial_position = initial_position
         self.current_position = initial_position
@@ -62,7 +61,8 @@ class FlightPathController:
         time.sleep(3)  # TODO: change to 'bluetooth.wait_until_works()' once Bluetooth is fixed
         self.interval = interval
         self.pid = APID(initial_target)
-        self.circle = Circle()
+        self.MAX_SPEED = max_speed
+        self.circle = Circle(speed=self.MAX_SPEED)
 
     # Function that checks whether it is safe for the drone to perform takeoff
     def check_safe_for_takeoff(self):
@@ -117,7 +117,7 @@ class FlightPathController:
 
     # Function that flies the drone in a circle
     # TODO: add leader-follower logic
-    def fly_circle(self, radius=100, speed=20, clock_wise=True):
+    def fly_circle(self, radius=100, speed=20, clock_wise=True, avoid=False):
         previous_time = time.time()
         while True:
             now = time.time()
@@ -196,3 +196,17 @@ class FlightPathController:
 
         return pos
 
+    def avoid(self, obstacle, method=1):
+        match method:
+            case 1:
+                # speed * cos(alpha)
+                x = self.MAX_SPEED*math.cos(math.radians(self.current_position[3]))
+                y = self.MAX_SPEED*math.sin(math.radians(self.current_position[3]))
+                magnitude = math.sqrt(obstacle[0]**2 + obstacle[1**2])
+                self.cirlce.radius = magnitude/2
+                self.circle.theta = math.radians(180)
+                self.circle.speed = x
+                control = self.circle.calculate_angular_velocity()
+                control[0] = x
+                control[1] = y
+                return control
