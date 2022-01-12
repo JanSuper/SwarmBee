@@ -255,18 +255,18 @@ position_thread.start()
 setup_done = True
 
 # Get followers into formation
-# leader_drone.controller.completed_flightpath = True
-# start_flying()
-# in_formation = False
-# while not in_formation:
-#     in_formation = True
-#     for follower_drone in drones[1:]:
-#         if not follower_drone.controller.completed_flightpath:
-#             in_formation = False
-#             break
-# print(f"Swarm is in formation")
+leader_drone.controller.completed_flightpath = True
+start_flying()
+in_formation = False
+while not in_formation:
+    in_formation = True
+    for follower_drone in drones[1:]:
+        if not follower_drone.controller.completed_flightpath:
+            in_formation = False
+            break
+print(f"Swarm is in formation")
 
 # Start proper flight
-# print(f"Start flight")
-# leader_drone.controller.completed_flightpath = False
-# monitor()
+print(f"Start flight")
+leader_drone.controller.completed_flightpath = False
+monitor()
