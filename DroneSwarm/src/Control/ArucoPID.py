@@ -17,12 +17,15 @@ class APID():
 
         self.ryaw = ryaw
 
+        self.reachedTarget = False
+
     def realUpdate(self, x, y, z, yaw):
         self.x = x
         self.y = y
         self.z = z
         self.yaw = yaw
         self.ryaw = math.radians(yaw)
+        self.areWeThereYet()
 
     def realUpdate(self, pos):
         self.x = pos[0]
@@ -30,18 +33,30 @@ class APID():
         self.z = pos[2]
         self.yaw = pos[3]
         self.ryaw = math.radians(pos[3])
+        self.areWeThereYet()
 
     def setDes(self, x, y, z, yaw):
         self.desx = x
         self.desy = y
         self.desz = z
         self.desyaw = yaw
+        self.areWeThereYet()
 
     def setDes(self, desPos):
         self.desx = desPos[0]
         self.desy = desPos[1]
         self.desz = desPos[2]
         self.desyaw = desPos[3]
+        self.areWeThereYet()
+
+    def areWeThereYet(self):
+        diffX = self.desx - self.x
+        diffY = self.desy - self.y
+        diffZ = self.desz - self.z
+
+        MAX_DISTANCE = math.sqrt(75)
+
+        self.reachedTarget = math.sqrt(diffX**2, diffY**2, diffZ**2) <= MAX_DISTANCE
 
     def getVel(self):
         print([self.desx, self.desy, self.desz, self.desyaw])
