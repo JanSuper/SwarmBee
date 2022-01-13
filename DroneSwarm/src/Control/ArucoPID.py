@@ -14,12 +14,13 @@ class APID():
         self.desy = des[1]
         self.desz = des[2]
         self.desyaw = des[3]
+        print(f"(Proportional) New target = {des}")
 
         self.ryaw = ryaw
 
         self.reachedTarget = False
         self.obstacleFound = False
-        self.obstacleList = [[0,0],[0,0],[0,0]]
+        self.obstacleList = [[0, 0], [0, 0], [0, 0]]
 
     def realUpdate(self, x, y, z, yaw):
         self.x = x
@@ -27,6 +28,7 @@ class APID():
         self.z = z
         self.yaw = yaw
         self.ryaw = math.radians(yaw)
+        print(f"(Proportional) New position = [{x}, {y}, {z}, {yaw}]")
         self.areWeThereYet()
 
     def realUpdate(self, pos):
@@ -35,6 +37,7 @@ class APID():
         self.z = pos[2]
         self.yaw = pos[3]
         self.ryaw = math.radians(pos[3])
+        print(f"(Proportional) New position = {pos}")
         self.areWeThereYet()
 
     def setDes(self, x, y, z, yaw):
@@ -42,6 +45,7 @@ class APID():
         self.desy = y
         self.desz = z
         self.desyaw = yaw
+        print(f"(Proportional) New target = [{x}, {y}, {z}, {yaw}]")
         self.areWeThereYet()
 
     def setDes(self, desPos):
@@ -49,6 +53,7 @@ class APID():
         self.desy = desPos[1]
         self.desz = desPos[2]
         self.desyaw = desPos[3]
+        print(f"(Proportional) New target = {desPos}")
         self.areWeThereYet()
 
     def areWeThereYet(self):
@@ -58,12 +63,11 @@ class APID():
 
         MAX_DISTANCE = math.sqrt(75)
 
-        self.reachedTarget = math.sqrt(diffX**2 + diffY**2 + diffZ**2) <= MAX_DISTANCE
+        self.reachedTarget = math.sqrt(diffX ** 2 + diffY ** 2 + diffZ ** 2) <= MAX_DISTANCE
 
     def setObstacle(self, list):
         self.obstacleFound = True
         self.obstacleList = list
-
 
     def getVel(self):
         # print([self.desx, self.desy, self.desz, self.desyaw])
@@ -71,19 +75,18 @@ class APID():
         pre = [self.desx - self.x, self.desy - self.y]
         x = pre[0] * math.cos(self.ryaw) - pre[1] * math.sin(self.ryaw)
         y = pre[0] * math.sin(self.ryaw) + pre[1] * math.cos(self.ryaw)
-        yawVel = (-(self.desyaw - self.yaw))/math.sqrt(x**2+y**2)
+        yawVel = (-(self.desyaw - self.yaw)) / math.sqrt(x ** 2 + y ** 2)
         trans = [x, y, self.desz - self.z, yawVel]
         # trans = [pre[0] * math.cos(self.ryaw) - pre[1] * math.sin(self.ryaw), pre[0] * math.sin(self.ryaw)
         #          + pre[1] * math.cos(self.ryaw), self.desz - self.z, -(self.desyaw - self.yaw)]
         # print(trans)
         trans = list(np.around(np.array(trans), decimals=1))
         # print(trans)
-        if self.obstacleFound:
-            trans = self.avoidObstacles(trans)
+        # if self.obstacleFound:
+        #     trans = self.avoidObstacles(trans)
         return trans
 
-
-    def avoidObstacles(self,trans):
+    def avoidObstacles(self, trans):
         # TRANSPOSE ALL THE THINGS
         print("There are obstacles")
         panic = False
@@ -94,8 +97,8 @@ class APID():
             diffY = self.y - pos[1]
             dis = math.sqrt(diffX ** 2 + diffY ** 2)
             rddAngle = math.atan2(-diffX, -diffY)
-            rtAngle = math.atan2(trans[0],trans[1])
-            if dis < 20: # PANIC
+            rtAngle = math.atan2(trans[0], trans[1])
+            if dis < 20:  # PANIC
                 print("PANIC")
                 if panic:
                     print("MULTIPLE PANIC")
@@ -104,21 +107,21 @@ class APID():
                 else:
                     print("FIRST PANIC")
                     panic = True
-                    trans = [diffX,diffY]
+                    trans = [diffX, diffY]
                     print(trans)
-            elif abs(rddAngle - rtAngle) >= .5*math.pi:
+            elif abs(rddAngle - rtAngle) >= .5 * math.pi:
                 print("flying in opposite direction so it's safe")
                 pass
-            elif 20 <= dis <= 60 and not panic: # curve around
+            elif 20 <= dis <= 60 and not panic:  # curve around
                 print("Curvy")
                 rAngle = math.atan2(diffX, diffY)
                 if rddAngle == rtAngle:
-                    rAngle -= 0.05*math.pi
+                    rAngle -= 0.05 * math.pi
                 x = trans[0] * math.cos(rAngle) - trans[1] * math.sin(rAngle)
-                trans = [x,0]
+                trans = [x, 0]
                 x = trans[0] * math.cos(-rAngle) - trans[1] * math.sin(-rAngle)
                 y = trans[0] * math.sin(-rAngle) + trans[1] * math.cos(-rAngle)
-                trans = [x,y]
+                trans = [x, y]
             else:
                 print("It's fine")
                 pass
@@ -126,10 +129,11 @@ class APID():
 
 
 def main():
-    pid = APID([0,-100,0,0])
-    pid.setObstacle([[0,-20]])
-    pid.realUpdate([0,0,0,0])
+    pid = APID([0, -100, 0, 0])
+    pid.setObstacle([[0, -20]])
+    pid.realUpdate([0, 0, 0, 0])
     print(pid.getVel())
+
 
 if __name__ == "__main__":
     main()

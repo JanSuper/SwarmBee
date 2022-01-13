@@ -45,7 +45,7 @@ class Drone:
         u[1] = -u[1]  # negate vel_y
         tmp_u = []
         for vel in u:
-            tmp_u.append(max(-100, min(100, vel)))
+            tmp_u.append(max(-30, min(30, vel)))
         u = tmp_u
         command = f"rc {u[0]} {u[1]} {u[2]} {u[3]}"
         print(f"Drone #{self.number} remote control: " + command)

@@ -171,8 +171,8 @@ class Connection:
 
 if __name__ == "__main__":
     address_EDAD6F = "84:CC:A8:2F:E9:32"
-    address_60FF08 = "9C:9C:1F:E1:B0:62"
     address_EDB02F = "84:CC:A8:2E:9C:B6"
+    address_60FF08 = "9C:9C:1F:E1:B0:62"
 
     # nearby_devices = bluetooth.discover_devices(lookup_names=True)
     # print("Found {} devices.".format(len(nearby_devices)))
@@ -180,14 +180,28 @@ if __name__ == "__main__":
     # for addr, name in nearby_devices:
     #     print("  {} - {}".format(addr, name))
 
-    bluetooth = BackgroundBluetoothSensorRead(address_EDAD6F)
-    bluetooth.start()
-    bluetooth.wait_until_works()
+    bluetooth_modules = []
+
+    bluetooth_EDAD = BackgroundBluetoothSensorRead(address_EDAD6F)
+    bluetooth_EDAD.start()
+    bluetooth_EDAD.wait_until_works()
+    bluetooth_modules.append(bluetooth_EDAD)
+
+    # bluetooth_EDB0 = BackgroundBluetoothSensorRead(address_EDB02F)
+    # bluetooth_EDB0.start()
+    # bluetooth_EDB0.wait_until_works()
+    # bluetooth_modules.append(bluetooth_EDB0)
+
+    # bluetooth_60FF = BackgroundBluetoothSensorRead(address_60FF08)
+    # bluetooth_60FF.start()
+    # bluetooth_60FF.wait_until_works()
+    # bluetooth_modules.append(bluetooth_60FF)
 
     previous_time = time.time()
     interval = 0.1
     while True:
         current_time = time.time()
         if current_time - previous_time > interval:
-            print(f"Bluetooth values: {bluetooth.current_package}")
-            previous_time = current_time
+            for bluetooth_module in bluetooth_modules:
+                print(f"{bluetooth_module.address}: {bluetooth_module.current_package}")
+                previous_time = current_time

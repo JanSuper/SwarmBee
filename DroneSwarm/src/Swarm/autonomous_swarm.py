@@ -142,7 +142,7 @@ def fetch_position():
 
 def start_flying():
     for drone in drones:
-        thread = Thread(target=drone.controller.fly_you_fool, args=('Trapezoid',))
+        thread = Thread(target=drone.controller.fly_you_fool, args=('Proportional',))
         thread.daemon = True
         thread.start()
 
@@ -211,7 +211,7 @@ force_land_thread.start()
 udp_ports = [11111]  # 11113, 11115
 interface_names = ['wlxd03745f79670']  # wlxd0374572e205, wlx6c5ab04a495e
 bluetooth_addresses = ['84:CC:A8:2F:E9:32']  # 84:CC:A8:2E:9C:B6, 9C:9C:1F:E1:B0:62
-leader_initial_flightpath = []
+leader_initial_flightpath = [[400, 0, 0, 0]]
 follower_offsets = [[-50, -50, 0, 0], [-50, 50, 0, 0]]
 
 drones = []

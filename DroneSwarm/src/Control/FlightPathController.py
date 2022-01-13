@@ -55,14 +55,15 @@ class FlightPathController:
         self.trapezoid.set_target(initial_target)
         self.need_new_position = False
         # Initialize Bluetooth
-        self.bluetooth = BackgroundBluetoothSensorRead(drone.bt_address)
-        self.bt_threshold = bt_threshold
-        self.bluetooth.start()
-        time.sleep(3)  # TODO: change to 'bluetooth.wait_until_works()' once Bluetooth is fixed
+        # self.bluetooth = BackgroundBluetoothSensorRead(drone.bt_address)
+        # self.bt_threshold = bt_threshold
+        # self.bluetooth.start()
+        # time.sleep(3)  # TODO: change to 'bluetooth.wait_until_works()' once Bluetooth is fixed
         self.interval = interval
         self.proportional = APID(initial_target)
         self.MAX_SPEED = max_speed
         self.circle = Circle(speed=self.MAX_SPEED)
+        self.obstacleList = [[200, 100]]
 
     # Function that checks whether it is safe for the drone to perform takeoff
     def check_safe_for_takeoff(self):
@@ -110,7 +111,7 @@ class FlightPathController:
                         self.update_drone_position()
                         self.trapezoid.set_position(self.current_position)
                         # Calculate velocities using the Trapezoid controller
-                        u = self.distance_check_calculate_u(self.bt_threshold, method='Trapezoid')
+                        u = self.calculate_u(method='Trapezoid')
                 # Send velocities to drone
                 self.drone.send_rc(u)
                 previous_time = now
@@ -144,7 +145,7 @@ class FlightPathController:
                         calculate_u = True
                     if calculate_u:
                         # Calculate velocities using the Proportional controller
-                        u = self.distance_check_calculate_u(self.bt_threshold, method='Proportional')
+                        u = self.calculate_u(method='Proportional')
                 # Send velocities to drone
                 self.drone.send_rc(u)
                 previous_time = now
@@ -199,9 +200,11 @@ class FlightPathController:
     def calculate_u(self, method='Trapezoid'):
         match method:
             case 'Trapezoid':
-                return self.trapezoid.calculate()
+                u = self.trapezoid.calculate()
+                return self.avoid(u)
             case 'Proportional':
-                return self.proportional.getVel()
+                u = self.proportional.getVel()
+                return self.avoid(u)
             case 'Circle':
                 return self.circle.calculate_angular_velocity()
 
@@ -217,7 +220,7 @@ class FlightPathController:
 
         return pos
 
-    def avoid(self, obstacle, method=1):
+    def avoid(self, u, obstacle=None, method=2):
         match method:
             case 1:
                 # speed * cos(alpha)
@@ -231,3 +234,42 @@ class FlightPathController:
                 control[0] = x
                 control[1] = y
                 return control
+            case 2:
+                # TRANSPOSE ALL THE THINGS
+                print("There are obstacles")
+                panic = False
+                for pos in self.obstacleList:
+                    print("new pos")
+                    diffX = self.current_position[0] - pos[0]
+                    diffY = self.current_position[1] - pos[1]
+                    dis = math.sqrt(diffX ** 2 + diffY ** 2)
+                    rddAngle = math.atan2(-diffX, -diffY)
+                    rtAngle = math.atan2(u[0], u[1])
+                    if dis < 40:  # PANIC
+                        print("PANIC")
+                        if panic:
+                            print("MULTIPLE PANIC")
+                            u[0] += diffX
+                            u[1] += diffY
+                        else:
+                            print("FIRST PANIC")
+                            panic = True
+                            u[0], u[1] = diffX, diffY
+                            print(u)
+                    # elif abs(rddAngle - rtAngle) >= .5 * math.pi:
+                    #     print("flying in opposite direction so it's safe")
+                    #     pass
+                    elif 40 <= dis <= 80 and not panic:  # curve around
+                        print("Curvy")
+                        rAngle = math.atan2(diffX, diffY)
+                        if rddAngle == rtAngle:
+                            rAngle -= 0.05 * math.pi
+                        x = u[0] * math.cos(rAngle) - u[1] * math.sin(rAngle)
+                        u[0], u[1] = x, 0
+                        x = u[0] * math.cos(-rAngle) - u[1] * math.sin(-rAngle)
+                        y = u[0] * math.sin(-rAngle) + u[1] * math.cos(-rAngle)
+                        u[0], u[1] = x, y
+                    else:
+                        print("It's fine")
+                        pass
+                return u
