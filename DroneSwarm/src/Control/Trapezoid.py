@@ -1,3 +1,4 @@
+import math
 import numpy as np
 
 MAX_SPEED = 25  # cm/s
@@ -38,7 +39,7 @@ class Trapezoid:
             self.position = position
             print(f"(Trapezoid) New position = {self.position}")
         else:
-            print("Invalid position")
+            print("(Trapezoid) Invalid position")
 
     def update_position_estimate(self, dt, x=0.0, y=0.0, z=0.0, yaw=0):
         temp = np.array([x, y, z, yaw])
@@ -55,7 +56,7 @@ class Trapezoid:
     def set_target(self, target):
         if target.shape == self.target.shape:
             if target.dtype != np.int:
-                print("Target position must be an integer")
+                print("(Trapezoid) Target position must be an integer")
             else:
                 print(f"(Trapezoid) New target = {target}")
                 self.target[:] = target[:]
@@ -66,9 +67,8 @@ class Trapezoid:
                     self.is_reached = [False, False, False, False]
                     self.reached = False
         else:
-            print("Invalid target position")
+            print("(Trapezoid) Invalid target position")
 
-    # TODO: add docs
     def calculate(self):
         for i in range(4):
             if abs((self.target[i] - self.position[i])) > abs((2 * self.distance[i] / 3)):
@@ -97,13 +97,17 @@ class Trapezoid:
                 else:
                     self.is_reached[i] = True
                     self.velocity[i] = 0
-        # print(self.is_reached)
+
         if all(self.is_reached):
             self.reached = True
-            print("Reached Target: %s" % self.target)
-            # print('\n Enter a new target position! Current position:%s' % self.position)
+            print("(Trapezoid) Reached Target: %s" % self.target)
 
-        np.clip(self.velocity, -MAX_SPEED, MAX_SPEED)
-        velocity = self.velocity.tolist()
-        print(velocity)
-        return velocity
+        # Translation
+        u = self.velocity.tolist()
+        print(u)
+        yaw_radians = math.radians(self.position[3])
+        vel_x = u[0] * math.cos(yaw_radians) - u[1] * math.sin(yaw_radians)
+        vel_y = u[0] * math.sin(yaw_radians) + u[1] * math.cos(yaw_radians)
+        u[0], u[1] = vel_x, vel_y
+
+        return u

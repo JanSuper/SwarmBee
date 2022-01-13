@@ -125,10 +125,10 @@ def fetch_position():
                 previous_position = previous_positions.get(drone)
                 deltas = np.absolute(current_position - previous_position)
                 if any(deltas[:] > 50):
-                    print(f"(ArUco) Drone #{drone.number}: averaged {current_position} and {previous_position}")
+                    # print(f"(ArUco) Drone #{drone.number}: averaged {current_position} and {previous_position}")
                     current_position = (current_position + previous_position) / 2
                 previous_positions[drone] = current_position
-                print(f"(ArUco) Drone #{drone.number}: current position = {current_position}")
+                # print(f"(ArUco) Drone #{drone.number}: current position = {current_position}")
 
                 if drone.controller.need_new_position:
                     drone.controller.current_position = current_position
@@ -208,10 +208,10 @@ force_land_thread.daemon = True
 force_land_thread.start()
 
 # Control parameters
-udp_ports = [11111]  # 11113, 11115
-interface_names = ['wlxd03745f79670']  # wlxd0374572e205, wlx6c5ab04a495e
-bluetooth_addresses = ['84:CC:A8:2F:E9:32']  # 84:CC:A8:2E:9C:B6, 9C:9C:1F:E1:B0:62
-leader_initial_flightpath = [[400, 0, 0, 0]]
+udp_ports = [11111]  # 11111, 11113, 11115 (EDAD, EDB0, 60FF)
+interface_names = ['wlxd03745f79670']  # wlxd03745f79670, wlxd0374572e205, wlx6c5ab04a495e
+bluetooth_addresses = ['84:CC:A8:2F:E9:32']  # 84:CC:A8:2F:E9:32, 84:CC:A8:2E:9C:B6, 9C:9C:1F:E1:B0:62
+leader_initial_flightpath = [[200, 0, 0, 0]]
 follower_offsets = [[-50, -50, 0, 0], [-50, 50, 0, 0]]
 
 drones = []

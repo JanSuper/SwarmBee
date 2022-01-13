@@ -76,7 +76,7 @@ class APID():
         x = pre[0] * math.cos(self.ryaw) - pre[1] * math.sin(self.ryaw)
         y = pre[0] * math.sin(self.ryaw) + pre[1] * math.cos(self.ryaw)
         yawVel = (-(self.desyaw - self.yaw)) / math.sqrt(x ** 2 + y ** 2)
-        trans = [x, y, self.desz - self.z, yawVel]
+        trans = [x, -y, self.desz - self.z, yawVel]
         # trans = [pre[0] * math.cos(self.ryaw) - pre[1] * math.sin(self.ryaw), pre[0] * math.sin(self.ryaw)
         #          + pre[1] * math.cos(self.ryaw), self.desz - self.z, -(self.desyaw - self.yaw)]
         # print(trans)

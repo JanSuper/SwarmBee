@@ -1,4 +1,6 @@
+import math
 import socket
+import numpy as np
 from multiprocessing import Pipe, Process
 
 from DroneSwarm.src.Control.FlightPathController import FlightPathController
@@ -42,11 +44,18 @@ class Drone:
             print("Error sending \"" + message + "\" to drone #" + str(self.number) + ": " + str(e))
 
     def send_rc(self, u):
-        u[1] = -u[1]  # negate vel_y
-        tmp_u = []
+        u = np.array(u)
+        max_vel = 30
+        quads = 0
         for vel in u:
-            tmp_u.append(max(-30, min(30, vel)))
-        u = tmp_u
+            quads += (vel * vel)
+        length_u = math.sqrt(quads)
+        if length_u > 30:
+            u = u * max_vel / length_u
+        # tmp_u = []
+        # for vel in u:
+        #     tmp_u.append(max(-30, min(30, vel)))
+        # u = tmp_u
         command = f"rc {u[0]} {u[1]} {u[2]} {u[3]}"
         print(f"Drone #{self.number} remote control: " + command)
         try:

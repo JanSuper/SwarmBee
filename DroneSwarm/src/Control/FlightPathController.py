@@ -33,7 +33,7 @@ def check_for_interval(list1, lower, upper):
 
 class FlightPathController:
 
-    def __init__(self, drone, initial_position, bt_threshold=0.20, interval=0.1, max_speed=40):
+    def __init__(self, drone, initial_position, bt_threshold=0.20, interval=0, max_speed=40):
         self.drone = drone
         self.flightpath = drone.flightpath
         self.need_new_flightpath = False
@@ -236,10 +236,8 @@ class FlightPathController:
                 return control
             case 2:
                 # TRANSPOSE ALL THE THINGS
-                print("There are obstacles")
                 panic = False
                 for pos in self.obstacleList:
-                    print("new pos")
                     diffX = self.current_position[0] - pos[0]
                     diffY = self.current_position[1] - pos[1]
                     dis = math.sqrt(diffX ** 2 + diffY ** 2)
