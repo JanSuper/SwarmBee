@@ -46,6 +46,7 @@ class APID():
         self.desz = z
         self.desyaw = yaw
         print(f"(Proportional) New target = [{x}, {y}, {z}, {yaw}]")
+        self.reachedTarget = False
         self.areWeThereYet()
 
     def setDes(self, desPos):
@@ -54,6 +55,7 @@ class APID():
         self.desz = desPos[2]
         self.desyaw = desPos[3]
         print(f"(Proportional) New target = {desPos}")
+        self.reachedTarget = False
         self.areWeThereYet()
 
     def areWeThereYet(self):
@@ -82,7 +84,7 @@ class APID():
         # print(trans)
         trans = list(np.around(np.array(trans), decimals=1))
         # print(trans)
-        #if self.obstacleFound:
+        # if self.obstacleFound:
         #    trans = self.avoidObstacles(trans)
         return trans
 
@@ -119,10 +121,10 @@ class APID():
                 rAngle = math.atan2(diffX, diffY)
                 if rddAngle == rtAngle:
                     rAngle -= 0.05 * math.pi
-                x = trans[0] * math.cos(rAngle-self.ryaw) - trans[1] * math.sin(rAngle-self.ryaw)
+                x = trans[0] * math.cos(rAngle - self.ryaw) - trans[1] * math.sin(rAngle - self.ryaw)
                 trans = [x, 0, trans[2], trans[3]]
-                x = trans[0] * math.cos(-rAngle+self.ryaw) - trans[1] * math.sin(-rAngle+self.ryaw)
-                y = trans[0] * math.sin(-rAngle+self.ryaw) + trans[1] * math.cos(-rAngle+self.ryaw)
+                x = trans[0] * math.cos(-rAngle + self.ryaw) - trans[1] * math.sin(-rAngle + self.ryaw)
+                y = trans[0] * math.sin(-rAngle + self.ryaw) + trans[1] * math.cos(-rAngle + self.ryaw)
                 trans = [x, y, trans[2], trans[3]]
             else:
                 print("It's fine")
@@ -137,8 +139,6 @@ def main():
     print(pid.getVel())
     pid.realUpdate([-20, -20, 0, 90])
     print(pid.getVel())
-
-
 
 
 if __name__ == "__main__":

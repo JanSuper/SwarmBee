@@ -86,6 +86,15 @@ class FlightPathController:
         print("The drone is in a safe location. Please stay clear of the drone.")
         time.sleep(10)
 
+    def update_flightpath(self, flightpath, method='Trapezoid'):
+        self.flightpath = flightpath
+        next_target = self.initial_position + np.array(self.flightpath.pop(0))
+        match method:
+            case 'Trapezoid':
+                self.trapezoid.set_target(next_target)
+            case 'Proportional':
+                self.proportional.setDes(next_target)
+
     def fly_you_fool(self, method='Trapezoid'):
         match method:
             case 'Trapezoid':
@@ -225,8 +234,8 @@ class FlightPathController:
         pos = self.current_position
         sens = self.bluetooth.current_package
 
-        x = sens[1]*100*math.cos(math.radians(90-pos[3]))
-        y = sens[1]*100*math.sin(math.radians(90-pos[3]))
+        x = sens[1] * 100 * math.cos(math.radians(90 - pos[3]))
+        y = sens[1] * 100 * math.sin(math.radians(90 - pos[3]))
 
         pos[0] += x
         pos[1] += y
@@ -237,10 +246,10 @@ class FlightPathController:
         match method:
             case 1:
                 # speed * cos(alpha)
-                x = self.MAX_SPEED*math.cos(math.radians(self.current_position[3]))
-                y = self.MAX_SPEED*math.sin(math.radians(self.current_position[3]))
-                magnitude = math.sqrt(obstacle[0]**2 + obstacle[1**2])
-                self.circle.radius = magnitude/2
+                x = self.MAX_SPEED * math.cos(math.radians(self.current_position[3]))
+                y = self.MAX_SPEED * math.sin(math.radians(self.current_position[3]))
+                magnitude = math.sqrt(obstacle[0] ** 2 + obstacle[1 ** 2])
+                self.circle.radius = magnitude / 2
                 self.circle.theta = math.radians(180)
                 self.circle.speed = x
                 control = self.circle.calculate_angular_velocity()
@@ -271,14 +280,14 @@ class FlightPathController:
                             u[0], u[1] = diffX, diffY
                             print(u)
                     elif abs(rddAngle - rtAngle) >= .5 * math.pi:
-                         print("flying in opposite direction so it's safe")
-                         pass
+                        print("flying in opposite direction so it's safe")
+                        pass
                     elif 40 <= dis <= 80 and not panic:  # curve around
                         print("Curvy")
                         rAngle = math.atan2(diffX, diffY)
                         if rddAngle == rtAngle:
                             rAngle -= 0.05 * math.pi
-                        x = u[0] * math.cos(rAngle - ry) - u[1] * math.sin(rAngle- ry)
+                        x = u[0] * math.cos(rAngle - ry) - u[1] * math.sin(rAngle - ry)
                         u[0], u[1] = x, 0
                         x = u[0] * math.cos(-rAngle + ry) - u[1] * math.sin(-rAngle + ry)
                         y = u[0] * math.sin(-rAngle + ry) + u[1] * math.cos(-rAngle + ry)

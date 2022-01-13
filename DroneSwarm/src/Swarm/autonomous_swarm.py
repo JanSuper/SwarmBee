@@ -9,32 +9,6 @@ from threading import Thread
 from DroneSwarm.src.Swarm.drone import Drone
 import DroneSwarm.src.Utilities.KeyPressModule as KeyPress
 
-# marker groups for pre-defined flight paths
-#  30  31  32    33  34  35  66    67  68  69
-#   0   1   2     3   4   5  36    37  38  39
-#   6   7   8     9  10  11  42    43  44  45
-
-#  12  13  14    15  16  17  48    49  50  51
-#  18  19  20    21  22  23  54    55  56  57
-#  24  25  26    27  28  29  60    61  62  63
-
-
-def get_aruco_flightpath(marker_id):
-    aruco_flightpaths = [[125,125,0,0], [-125,125,0,0], [0,125,0,0],
-                         [0,-125,0,0], [125,-125,0,0], [-125,-125,0,0]]
-    groups = [[12,13,14, 18,19,20, 24,25,26],
-              [15,16,17,48, 21,22,23,54, 27,28,29,60],
-              [49,50,51, 55,56,57, 61,62,63],
-              [30,31,32, 0,1,2, 6,7,8],
-              [33,34,35,66, 3,4,5,36, 9,10,11,42],
-              [67,68,69, 37,38,39, 43,44,45]]
-    marker_group = -1
-    for i in range(len(groups)):
-        for j in range(len(groups[i])):
-            if groups[i][j] == marker_id:
-                marker_group = i
-                break
-    return aruco_flightpaths[marker_group]
 
 def force_land():
     KeyPress.init()
@@ -154,8 +128,42 @@ def fetch_info_from_aruco():
 
                 if drone.controller.need_new_flightpath:
                     # Can only trigger for leader drone
-                    drone.controller.flightpath = get_aruco_flightpath(marker_id)  # TODO: extend ArUco w/ hard-coded flightpaths
+                    drone.controller.update_flightpath(get_aruco_flightpath(marker_id), method)
                     drone.controller.need_new_flightpath = False
+
+
+# marker groups for pre-defined flight paths
+#  30  31  32    33  34  35  66    67  68  69
+#   0   1   2     3   4   5  36    37  38  39
+#   6   7   8     9  10  11  42    43  44  45
+
+#  12  13  14    15  16  17  48    49  50  51
+#  18  19  20    21  22  23  54    55  56  57
+#  24  25  26    27  28  29  60    61  62  63
+
+
+def get_aruco_flightpath(marker_id):
+    aruco_flightpaths = [
+        [[125, 125, 0, 0]],
+        [[-125, 125, 0, 0]],
+        [[0, 125, 0, 0]],
+        [[0, -125, 0, 0]],
+        [[125, -125, 0, 0]],
+        [[-125, -125, 0, 0]]
+    ]
+    groups = [[12, 13, 14, 18, 19, 20, 24, 25, 26],
+              [15, 16, 17, 48, 21, 22, 23, 54, 27, 28, 29, 60],
+              [49, 50, 51, 55, 56, 57, 61, 62, 63],
+              [30, 31, 32, 0, 1, 2, 6, 7, 8],
+              [33, 34, 35, 66, 3, 4, 5, 36, 9, 10, 11, 42],
+              [67, 68, 69, 37, 38, 39, 43, 44, 45]]
+    marker_group = -1
+    for i in range(len(groups)):
+        for j in range(len(groups[i])):
+            if groups[i][j] == marker_id:
+                marker_group = i
+                break
+    return aruco_flightpaths[marker_group]
 
 
 def start_flying():
