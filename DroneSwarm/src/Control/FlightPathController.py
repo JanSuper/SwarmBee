@@ -268,6 +268,27 @@ class FlightPathController:
 
         return pos
 
+    def findObstacles(self):
+        if self.bluetooth.acceptL or self.bluetooth.acceptR or self.bluetooth.acceptF:
+            xs = self.current_position[0]
+            ys = self.current_position[1]
+            self.obstacleList = []
+            if self.bluetooth.acceptL:
+                tempyaw = self.current_position[3] + 270
+                tempryaw = math.radians(tempyaw)
+                dis = self.bluetooth.current_package[0]
+                self.obstacleList.append([xs + math.sin(tempryaw) * dis * 100, ys + math.cos(tempryaw) * dis * 100])
+            if self.bluetooth.acceptF:
+                tempyaw = self.current_position[3]
+                tempryaw = math.radians(tempyaw)
+                dis = self.bluetooth.current_package[1]
+                self.obstacleList.append([xs + math.sin(tempryaw) * dis * 100, ys + math.cos(tempryaw) * dis * 100])
+            if self.bluetooth.acceptR:
+                tempyaw = self.current_position[3] + 90
+                tempryaw = math.radians(tempyaw)
+                dis = self.bluetooth.current_package[2]
+                self.obstacleList.append([xs + math.sin(tempryaw) * dis * 100, ys + math.cos(tempryaw) * dis * 100])
+
     def avoid(self, u, obstacle=None, method=2):
         match method:
             case 1:
