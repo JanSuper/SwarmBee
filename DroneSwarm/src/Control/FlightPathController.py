@@ -241,6 +241,7 @@ class FlightPathController:
             case 2:
                 # TRANSPOSE ALL THE THINGS
                 panic = False
+                ry = math.radians(self.current_position[3])
                 for pos in self.obstacleList:
                     diffX = self.current_position[0] - pos[0]
                     diffY = self.current_position[1] - pos[1]
@@ -268,7 +269,6 @@ class FlightPathController:
                         rAngle = math.atan2(diffX, diffY)
                         if rddAngle == rtAngle:
                             rAngle -= 0.05 * math.pi
-                        ry = self.current_position[3]
                         x = u[0] * math.cos(rAngle - ry) - u[1] * math.sin(rAngle- ry)
                         u[0], u[1] = x, 0
                         x = u[0] * math.cos(-rAngle + ry) - u[1] * math.sin(-rAngle + ry)
