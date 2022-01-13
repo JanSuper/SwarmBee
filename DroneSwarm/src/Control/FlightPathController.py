@@ -246,7 +246,9 @@ class FlightPathController:
                     diffY = self.current_position[1] - pos[1]
                     dis = math.sqrt(diffX ** 2 + diffY ** 2)
                     rddAngle = math.atan2(-diffX, -diffY)
-                    rtAngle = math.atan2(u[0], u[1])
+                    x = u[0] * math.cos(-self.current_position[3]) - u[1] * math.sin(-self.current_position[3])
+                    y = u[0] * math.sin(-self.current_position[3]) + u[1] * math.cos(-self.current_position[3])
+                    rtAngle = math.atan2(x, y)
                     if dis < 40:  # PANIC
                         print("PANIC")
                         if panic:
@@ -258,18 +260,19 @@ class FlightPathController:
                             panic = True
                             u[0], u[1] = diffX, diffY
                             print(u)
-                    # elif abs(rddAngle - rtAngle) >= .5 * math.pi:
-                    #     print("flying in opposite direction so it's safe")
-                    #     pass
+                    elif abs(rddAngle - rtAngle) >= .5 * math.pi:
+                         print("flying in opposite direction so it's safe")
+                         pass
                     elif 40 <= dis <= 80 and not panic:  # curve around
                         print("Curvy")
                         rAngle = math.atan2(diffX, diffY)
                         if rddAngle == rtAngle:
                             rAngle -= 0.05 * math.pi
-                        x = u[0] * math.cos(rAngle) - u[1] * math.sin(rAngle)
+                        ry = self.current_position[3]
+                        x = u[0] * math.cos(rAngle - ry) - u[1] * math.sin(rAngle- ry)
                         u[0], u[1] = x, 0
-                        x = u[0] * math.cos(-rAngle) - u[1] * math.sin(-rAngle)
-                        y = u[0] * math.sin(-rAngle) + u[1] * math.cos(-rAngle)
+                        x = u[0] * math.cos(-rAngle + ry) - u[1] * math.sin(-rAngle + ry)
+                        y = u[0] * math.sin(-rAngle + ry) + u[1] * math.cos(-rAngle + ry)
                         u[0], u[1] = x, y
                     else:
                         print("It's fine")
