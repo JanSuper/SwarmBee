@@ -33,15 +33,13 @@ def check_for_interval(list1, lower, upper):
 
 class FlightPathController:
 
-    def __init__(self, drone, initial_position, bt_threshold=0.20, interval=0, max_speed=40):
+    def __init__(self, drone, initial_position, method='Trapezoid', bt_threshold=0.20, interval=0, max_speed=40):
         self.drone = drone
         self.flightpath = drone.flightpath
         self.need_new_flightpath = False
         self.offset = drone.offset  # offset to the leader = [dx, dy, dz, dyaw]
-        self.trapezoid = Trapezoid()
+
         self.initial_position = initial_position
-        self.current_position = initial_position
-        self.trapezoid.set_position(self.initial_position)
         if len(self.flightpath) > 0:
             # Flightpath contains an initial target
             initial_target = self.initial_position + np.array(
@@ -52,8 +50,20 @@ class FlightPathController:
             # Therefore, initial target is the drone's initial position (stationary)
             initial_target = self.initial_position
             self.completed_flightpath = True
-        self.trapezoid.set_target(initial_target)
+
+        match method:
+            case 'Trapezoid':
+                self.trapezoid = Trapezoid()
+                self.trapezoid.set_position(self.initial_position)
+                self.trapezoid.set_target(initial_target)
+            case 'Proportional':
+                self.proportional = APID(initial_target)
+            case 'Circle':
+                self.circle = Circle(speed=max_speed)
+
+        self.current_position = initial_position
         self.need_new_position = False
+
         # Initialize Bluetooth
         if drone.bt_address is not None:
             self.bluetooth = BackgroundBluetoothSensorRead(drone.bt_address)
@@ -63,10 +73,9 @@ class FlightPathController:
                 print(f"(Drone #{drone.number}) Bluetooth values: {self.bluetooth.current_package}")
                 pass
             print(f"(Drone #{drone.number}) Bluetooth values: {self.bluetooth.current_package}")
+
         self.interval = interval
-        self.proportional = APID(initial_target)
         self.MAX_SPEED = max_speed
-        self.circle = Circle(speed=self.MAX_SPEED)
         self.obstacleList = [[200, 100]]
 
     # Function that checks whether it is safe for the drone to perform takeoff

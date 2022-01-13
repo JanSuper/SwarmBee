@@ -104,7 +104,7 @@ def setup_drone(drone):
     initial_position = np.rint(np.array(initial_position[:4])).astype(int)
 
     # Create drone's controller
-    drone.create_controller(initial_position)
+    drone.create_controller(initial_position, method)
 
     print(f"Drone #{drone.number} is ready for flight")
 
@@ -142,7 +142,7 @@ def fetch_position():
 
 def start_flying():
     for drone in drones:
-        thread = Thread(target=drone.controller.fly_you_fool, args=('Proportional',))
+        thread = Thread(target=drone.controller.fly_you_fool, args=(method,))
         thread.daemon = True
         thread.start()
 
@@ -208,8 +208,9 @@ force_land_thread.daemon = True
 force_land_thread.start()
 
 # Control parameters
-udp_ports = [11111]  # 11111, 11113, 11115 (EDAD, EDB0, 60FF)
-interface_names = ['wlxd03745f79670']  # wlxd03745f79670, wlxd0374572e205, wlx6c5ab04a495e
+method = "Trapezoid"  # Trapezoid, Proportional, Circle
+udp_ports = [11111, 11113]  # 11111, 11113, 11115 (EDAD, EDB0, 60FF)
+interface_names = ['wlxd03745f79670', 'wlxd0374572e205']  # wlxd03745f79670, wlxd0374572e205, wlx6c5ab04a495e
 leader_bluetooth_address = '84:CC:A8:2F:E9:32'  # 84:CC:A8:2F:E9:32, 84:CC:A8:2E:9C:B6, 9C:9C:1F:E1:B0:62
 leader_initial_flightpath = []
 follower_offsets = [[-50, -50, 0, 0], [-50, 50, 0, 0]]
@@ -222,6 +223,7 @@ follower_offsets = [[-50, -50, 0, 0], [-50, 50, 0, 0]]
 # sudo iptables -A INPUT -i wlx6c5ab04a495e -p udp --dport 11115 -j ACCEPT
 # sudo iptables -A PREROUTING -t nat -i wlx6c5ab04a495e -p udp --dport 11111 -j REDIRECT --to-port 11115
 
+no_drones = len(interface_names)
 drones = []
 # Create leader drone
 leader_drone = Drone(1, None, leader_initial_flightpath, np.array([0, 0, 0, 0]), interface_names.pop(0),
@@ -242,7 +244,6 @@ dummy_thread.start()
 setup_drone(leader_drone)
 
 # Create follower drones
-no_drones = len(interface_names)
 drone_number = 2
 while drone_number <= no_drones:
     follower_offset = np.array(follower_offsets.pop(0))
@@ -261,6 +262,7 @@ position_thread.daemon = True
 position_thread.start()
 
 setup_done = True
+print("Setup done")
 
 # Get followers into formation
 # leader_drone.controller.completed_flightpath = True

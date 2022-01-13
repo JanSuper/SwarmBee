@@ -25,8 +25,8 @@ class Drone:
         self.controller = None
         self.bt_address = bt_address
 
-    def create_controller(self, initial_position):
-        self.controller = FlightPathController(self, initial_position)
+    def create_controller(self, initial_position, method):
+        self.controller = FlightPathController(self, initial_position, method=method)
 
     def send_dummy_command(self, dummy_command):
         try:
