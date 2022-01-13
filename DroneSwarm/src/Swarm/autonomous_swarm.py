@@ -1,6 +1,7 @@
 # This file uses DroneBlocks' UDP send-receiver example code as a base
 # Source: https://github.com/dbaldwin/DroneBlocks-Tello-Python/blob/master/lesson3-udp-send-receive/UDPSendReceive.py
 
+import os
 import time
 import numpy as np
 from threading import Thread
@@ -84,15 +85,6 @@ def setup_drone(drone):
         drone.send(message)
         while drone.busy:
             pass
-
-    # Perform controlled takeoff (not working)
-    # takeoff_speed = 20  # cm/s
-    # takeoff_height = 50  # cm
-    # takeoff_start = time.time()
-    # drone.send_rc([0, 0, takeoff_speed, 0])
-    # while (time.time() - takeoff_start) < (takeoff_height / takeoff_speed):
-    #     pass
-    # drone.send_rc([0, 0, 0, 0])
 
     # Start drone's ArUco process
     drone.aruco.start()
@@ -202,6 +194,17 @@ def send_dummy_command():
             previous_time = current_time
 
 
+def setup_wifi_adapter(interface_name, udp_port):
+    # TODO: fix root access issues?
+    commands = [
+        f'iptables -A INPUT -i {interface_name} -p udp --dport 11111 -j ACCEPT',
+        f'iptables -A INPUT -i {interface_name} -p udp --dport {udp_port} -j ACCEPT',
+        f'iptables -A PREROUTING -t nat -i {interface_name} -p udp --dport 11111 -j REDIRECT --to-port {udp_port}'
+    ]
+    for command in commands:
+        os.system(command)
+
+
 # Setup forced landing
 force_land_thread = Thread(target=force_land)
 force_land_thread.daemon = True
@@ -215,17 +218,10 @@ leader_bluetooth_address = '84:CC:A8:2F:E9:32'  # 84:CC:A8:2F:E9:32, 84:CC:A8:2E
 leader_initial_flightpath = []
 follower_offsets = [[-50, -50, 0, 0], [-50, 50, 0, 0]]
 
-# sudo iptables -A INPUT -i wlxd0374572e205 -p udp --dport 11111 -j ACCEPT
-# sudo iptables -A INPUT -i wlxd0374572e205 -p udp --dport 11113 -j ACCEPT
-# sudo iptables -A PREROUTING -t nat -i wlxd0374572e205 -p udp --dport 11111 -j REDIRECT --to-port 11113
-#
-# sudo iptables -A INPUT -i wlx6c5ab04a495e -p udp --dport 11111 -j ACCEPT
-# sudo iptables -A INPUT -i wlx6c5ab04a495e -p udp --dport 11115 -j ACCEPT
-# sudo iptables -A PREROUTING -t nat -i wlx6c5ab04a495e -p udp --dport 11111 -j REDIRECT --to-port 11115
-
 no_drones = len(interface_names)
 drones = []
 # Create leader drone
+setup_wifi_adapter(interface_names[0], udp_ports[0])
 leader_drone = Drone(1, None, leader_initial_flightpath, np.array([0, 0, 0, 0]), interface_names.pop(0),
                      udp_ports.pop(0), leader_bluetooth_address)
 drones.append(leader_drone)
@@ -246,6 +242,7 @@ setup_drone(leader_drone)
 # Create follower drones
 drone_number = 2
 while drone_number <= no_drones:
+    setup_wifi_adapter(interface_names[0], udp_ports[0])
     follower_offset = np.array(follower_offsets.pop(0))
     follower_flightpath = [[leader_drone.controller.initial_position + follower_offset]]
     follower_drone = Drone(drone_number, leader_drone, follower_flightpath, follower_offset, interface_names.pop(0),
