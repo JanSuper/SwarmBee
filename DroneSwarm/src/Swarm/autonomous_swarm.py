@@ -1,6 +1,7 @@
 # This file uses DroneBlocks' UDP send-receiver example code as a base
 # Source: https://github.com/dbaldwin/DroneBlocks-Tello-Python/blob/master/lesson3-udp-send-receive/UDPSendReceive.py
 
+import os
 import time
 import numpy as np
 from threading import Thread
@@ -8,32 +9,6 @@ from threading import Thread
 from DroneSwarm.src.Swarm.drone import Drone
 import DroneSwarm.src.Utilities.KeyPressModule as KeyPress
 
-# marker groups for pre-defined flight paths
-#  30  31  32    33  34  35  66    67  68  69
-#   0   1   2     3   4   5  36    37  38  39
-#   6   7   8     9  10  11  42    43  44  45
-
-#  12  13  14    15  16  17  48    49  50  51
-#  18  19  20    21  22  23  54    55  56  57
-#  24  25  26    27  28  29  60    61  62  63
-
-
-def get_aruco_flightpath(marker_id):
-    aruco_flightpaths = [[125,125,0,0], [-125,125,0,0], [0,125,0,0],
-                         [0,-125,0,0], [125,-125,0,0], [-125,-125,0,0]]
-    groups = [[12,13,14, 18,19,20, 24,25,26],
-              [15,16,17,48, 21,22,23,54, 27,28,29,60],
-              [49,50,51, 55,56,57, 61,62,63],
-              [30,31,32, 0,1,2, 6,7,8],
-              [33,34,35,66, 3,4,5,36, 9,10,11,42],
-              [67,68,69, 37,38,39, 43,44,45]]
-    marker_group = -1
-    for i in range(len(groups)):
-        for j in range(len(groups[i])):
-            if groups[i][j] == marker_id:
-                marker_group = i
-                break
-    return aruco_flightpaths[marker_group]
 
 def force_land():
     KeyPress.init()
@@ -111,15 +86,6 @@ def setup_drone(drone):
         while drone.busy:
             pass
 
-    # Perform controlled takeoff (not working)
-    # takeoff_speed = 20  # cm/s
-    # takeoff_height = 50  # cm
-    # takeoff_start = time.time()
-    # drone.send_rc([0, 0, takeoff_speed, 0])
-    # while (time.time() - takeoff_start) < (takeoff_height / takeoff_speed):
-    #     pass
-    # drone.send_rc([0, 0, 0, 0])
-
     # Start drone's ArUco process
     drone.aruco.start()
 
@@ -135,7 +101,7 @@ def setup_drone(drone):
     print(f"Drone #{drone.number} is ready for flight")
 
 
-def fetch_position():
+def fetch_info_from_aruco():
     previous_positions = {}
 
     for drone in drones:
@@ -161,8 +127,8 @@ def fetch_position():
                     drone.controller.need_new_position = False
 
                 if drone.controller.need_new_flightpath:
-                    # Can only trigger if 'drone' is leader drone
-                    drone.controller.flightpath = get_aruco_flightpath(marker_id)  # TODO: extend ArUco w/ hard-coded flightpaths
+                    # Can only trigger for leader drone
+                    drone.controller.flightpath = []  # TODO: extend ArUco w/ hard-coded flightpaths
                     drone.controller.need_new_flightpath = False
 
 
@@ -198,7 +164,7 @@ def monitor():
             current_time = time.time()
             if current_time - previous_time > follower_flightpath_update_interval:
                 # Add a new target to each follower's flightpath
-                leader_current_position = leader_drone.controller.trapezoid.position
+                leader_current_position = leader_drone.controller.current_position
                 for follower_drone in drones[1:]:
                     new_follower_target = leader_current_position + follower_drone.controller.offset
                     follower_drone.controller.flightpath.append(new_follower_target.tolist())
@@ -228,6 +194,17 @@ def send_dummy_command():
             previous_time = current_time
 
 
+def setup_wifi_adapter(interface_name, udp_port):
+    # TODO: fix root access issues?
+    commands = [
+        f'iptables -A INPUT -i {interface_name} -p udp --dport 11111 -j ACCEPT',
+        f'iptables -A INPUT -i {interface_name} -p udp --dport {udp_port} -j ACCEPT',
+        f'iptables -A PREROUTING -t nat -i {interface_name} -p udp --dport 11111 -j REDIRECT --to-port {udp_port}'
+    ]
+    for command in commands:
+        os.system(command)
+
+
 # Setup forced landing
 force_land_thread = Thread(target=force_land)
 force_land_thread.daemon = True
@@ -241,17 +218,10 @@ leader_bluetooth_address = '84:CC:A8:2F:E9:32'  # 84:CC:A8:2F:E9:32, 84:CC:A8:2E
 leader_initial_flightpath = []
 follower_offsets = [[-50, -50, 0, 0], [-50, 50, 0, 0]]
 
-# sudo iptables -A INPUT -i wlxd0374572e205 -p udp --dport 11111 -j ACCEPT
-# sudo iptables -A INPUT -i wlxd0374572e205 -p udp --dport 11113 -j ACCEPT
-# sudo iptables -A PREROUTING -t nat -i wlxd0374572e205 -p udp --dport 11111 -j REDIRECT --to-port 11113
-#
-# sudo iptables -A INPUT -i wlx6c5ab04a495e -p udp --dport 11111 -j ACCEPT
-# sudo iptables -A INPUT -i wlx6c5ab04a495e -p udp --dport 11115 -j ACCEPT
-# sudo iptables -A PREROUTING -t nat -i wlx6c5ab04a495e -p udp --dport 11111 -j REDIRECT --to-port 11115
-
 no_drones = len(interface_names)
 drones = []
 # Create leader drone
+setup_wifi_adapter(interface_names[0], udp_ports[0])
 leader_drone = Drone(1, None, leader_initial_flightpath, np.array([0, 0, 0, 0]), interface_names.pop(0),
                      udp_ports.pop(0), leader_bluetooth_address)
 drones.append(leader_drone)
@@ -272,6 +242,7 @@ setup_drone(leader_drone)
 # Create follower drones
 drone_number = 2
 while drone_number <= no_drones:
+    setup_wifi_adapter(interface_names[0], udp_ports[0])
     follower_offset = np.array(follower_offsets.pop(0))
     follower_flightpath = [[leader_drone.controller.initial_position + follower_offset]]
     follower_drone = Drone(drone_number, leader_drone, follower_flightpath, follower_offset, interface_names.pop(0),
@@ -283,7 +254,7 @@ while drone_number <= no_drones:
 for follower_drone in drones[1:]:
     setup_drone(follower_drone)
 
-position_thread = Thread(target=fetch_position)
+position_thread = Thread(target=fetch_info_from_aruco)
 position_thread.daemon = True
 position_thread.start()
 
