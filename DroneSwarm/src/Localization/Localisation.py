@@ -9,7 +9,7 @@ class Localiser:
 
     def calcPosFloor(self,x,y,z,r,offset):
         arucoX = offset[0]
-        arucoY = offset[1]
+        arucoY = 200 - offset[1]
 
         vector_1 = [0, 1]
         vector_2 = [x, y]
