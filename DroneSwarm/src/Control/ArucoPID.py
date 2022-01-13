@@ -76,14 +76,14 @@ class APID():
         x = pre[0] * math.cos(self.ryaw) - pre[1] * math.sin(self.ryaw)
         y = pre[0] * math.sin(self.ryaw) + pre[1] * math.cos(self.ryaw)
         yawVel = (-(self.desyaw - self.yaw)) / math.sqrt(x ** 2 + y ** 2)
-        trans = [x, -y, self.desz - self.z, yawVel]
+        trans = [x, y, self.desz - self.z, yawVel]
         # trans = [pre[0] * math.cos(self.ryaw) - pre[1] * math.sin(self.ryaw), pre[0] * math.sin(self.ryaw)
         #          + pre[1] * math.cos(self.ryaw), self.desz - self.z, -(self.desyaw - self.yaw)]
         # print(trans)
         trans = list(np.around(np.array(trans), decimals=1))
         # print(trans)
-        # if self.obstacleFound:
-        #     trans = self.avoidObstacles(trans)
+        #if self.obstacleFound:
+        #    trans = self.avoidObstacles(trans)
         return trans
 
     def avoidObstacles(self, trans):
@@ -97,7 +97,9 @@ class APID():
             diffY = self.y - pos[1]
             dis = math.sqrt(diffX ** 2 + diffY ** 2)
             rddAngle = math.atan2(-diffX, -diffY)
-            rtAngle = math.atan2(trans[0], trans[1])
+            x = trans[0] * math.cos(-self.ryaw) - trans[1] * math.sin(-self.ryaw)
+            y = trans[0] * math.sin(-self.ryaw) + trans[1] * math.cos(-self.ryaw)
+            rtAngle = math.atan2(x, y)
             if dis < 20:  # PANIC
                 print("PANIC")
                 if panic:
@@ -107,9 +109,9 @@ class APID():
                 else:
                     print("FIRST PANIC")
                     panic = True
-                    trans = [diffX, diffY]
+                    trans = [diffX, diffY, trans[2], trans[3]]
                     print(trans)
-            elif abs(rddAngle - rtAngle) >= .5 * math.pi:
+            elif (abs(rddAngle - rtAngle)) >= (.5 * math.pi):
                 print("flying in opposite direction so it's safe")
                 pass
             elif 20 <= dis <= 60 and not panic:  # curve around
@@ -117,11 +119,11 @@ class APID():
                 rAngle = math.atan2(diffX, diffY)
                 if rddAngle == rtAngle:
                     rAngle -= 0.05 * math.pi
-                x = trans[0] * math.cos(rAngle) - trans[1] * math.sin(rAngle)
-                trans = [x, 0]
-                x = trans[0] * math.cos(-rAngle) - trans[1] * math.sin(-rAngle)
-                y = trans[0] * math.sin(-rAngle) + trans[1] * math.cos(-rAngle)
-                trans = [x, y]
+                x = trans[0] * math.cos(rAngle-self.ryaw) - trans[1] * math.sin(rAngle-self.ryaw)
+                trans = [x, 0, trans[2], trans[3]]
+                x = trans[0] * math.cos(-rAngle+self.ryaw) - trans[1] * math.sin(-rAngle+self.ryaw)
+                y = trans[0] * math.sin(-rAngle+self.ryaw) + trans[1] * math.cos(-rAngle+self.ryaw)
+                trans = [x, y, trans[2], trans[3]]
             else:
                 print("It's fine")
                 pass
@@ -131,8 +133,12 @@ class APID():
 def main():
     pid = APID([0, -100, 0, 0])
     pid.setObstacle([[0, -20]])
-    pid.realUpdate([0, 0, 0, 0])
+    pid.realUpdate([0, 0, 0, 90])
     print(pid.getVel())
+    pid.realUpdate([-20, -20, 0, 90])
+    print(pid.getVel())
+
+
 
 
 if __name__ == "__main__":
