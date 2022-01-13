@@ -101,7 +101,7 @@ def setup_drone(drone):
     print(f"Drone #{drone.number} is ready for flight")
 
 
-def fetch_position():
+def fetch_info_from_aruco():
     previous_positions = {}
 
     for drone in drones:
@@ -127,7 +127,7 @@ def fetch_position():
                     drone.controller.need_new_position = False
 
                 if drone.controller.need_new_flightpath:
-                    # Can only trigger if 'drone' is leader drone
+                    # Can only trigger for leader drone
                     drone.controller.flightpath = []  # TODO: extend ArUco w/ hard-coded flightpaths
                     drone.controller.need_new_flightpath = False
 
@@ -164,7 +164,7 @@ def monitor():
             current_time = time.time()
             if current_time - previous_time > follower_flightpath_update_interval:
                 # Add a new target to each follower's flightpath
-                leader_current_position = leader_drone.controller.trapezoid.position
+                leader_current_position = leader_drone.controller.current_position
                 for follower_drone in drones[1:]:
                     new_follower_target = leader_current_position + follower_drone.controller.offset
                     follower_drone.controller.flightpath.append(new_follower_target.tolist())
@@ -254,7 +254,7 @@ while drone_number <= no_drones:
 for follower_drone in drones[1:]:
     setup_drone(follower_drone)
 
-position_thread = Thread(target=fetch_position)
+position_thread = Thread(target=fetch_info_from_aruco)
 position_thread.daemon = True
 position_thread.start()
 
