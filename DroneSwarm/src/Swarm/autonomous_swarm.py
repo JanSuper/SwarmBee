@@ -78,7 +78,7 @@ def stop_program():
 
 def setup_drone(drone):
     # Perform takeoff
-    messages = ["command", "battery?", "streamoff", "streamon", "takeoff"]
+    messages = ["command", "battery?", "streamoff", "streamon"]
     for message in messages:
         print(f"Sending message to drone #{drone.number}: {message}")
         drone.send(message)
@@ -210,14 +210,22 @@ force_land_thread.start()
 # Control parameters
 udp_ports = [11111]  # 11111, 11113, 11115 (EDAD, EDB0, 60FF)
 interface_names = ['wlxd03745f79670']  # wlxd03745f79670, wlxd0374572e205, wlx6c5ab04a495e
-bluetooth_addresses = ['84:CC:A8:2F:E9:32']  # 84:CC:A8:2F:E9:32, 84:CC:A8:2E:9C:B6, 9C:9C:1F:E1:B0:62
-leader_initial_flightpath = [[200, 0, 0, 0]]
+leader_bluetooth_address = '84:CC:A8:2F:E9:32'  # 84:CC:A8:2F:E9:32, 84:CC:A8:2E:9C:B6, 9C:9C:1F:E1:B0:62
+leader_initial_flightpath = []
 follower_offsets = [[-50, -50, 0, 0], [-50, 50, 0, 0]]
+
+# sudo iptables -A INPUT -i wlxd0374572e205 -p udp --dport 11111 -j ACCEPT
+# sudo iptables -A INPUT -i wlxd0374572e205 -p udp --dport 11113 -j ACCEPT
+# sudo iptables -A PREROUTING -t nat -i wlxd0374572e205 -p udp --dport 11111 -j REDIRECT --to-port 11113
+#
+# sudo iptables -A INPUT -i wlx6c5ab04a495e -p udp --dport 11111 -j ACCEPT
+# sudo iptables -A INPUT -i wlx6c5ab04a495e -p udp --dport 11115 -j ACCEPT
+# sudo iptables -A PREROUTING -t nat -i wlx6c5ab04a495e -p udp --dport 11111 -j REDIRECT --to-port 11115
 
 drones = []
 # Create leader drone
 leader_drone = Drone(1, None, leader_initial_flightpath, np.array([0, 0, 0, 0]), interface_names.pop(0),
-                     udp_ports.pop(0), bluetooth_addresses.pop(0))
+                     udp_ports.pop(0), leader_bluetooth_address)
 drones.append(leader_drone)
 
 # Enable receiver
@@ -240,7 +248,7 @@ while drone_number <= no_drones:
     follower_offset = np.array(follower_offsets.pop(0))
     follower_flightpath = [[leader_drone.controller.initial_position + follower_offset]]
     follower_drone = Drone(drone_number, leader_drone, follower_flightpath, follower_offset, interface_names.pop(0),
-                           udp_ports.pop(0), bluetooth_addresses.pop(0))
+                           udp_ports.pop(0), None)
     drones.append(follower_drone)
     drone_number += 1
 
@@ -255,18 +263,20 @@ position_thread.start()
 setup_done = True
 
 # Get followers into formation
-leader_drone.controller.completed_flightpath = True
-start_flying()
-in_formation = False
-while not in_formation:
-    in_formation = True
-    for follower_drone in drones[1:]:
-        if not follower_drone.controller.completed_flightpath:
-            in_formation = False
-            break
-print(f"Swarm is in formation")
+# leader_drone.controller.completed_flightpath = True
+# start_flying()
+# in_formation = False
+# while not in_formation:
+#     in_formation = True
+#     for follower_drone in drones[1:]:
+#         if not follower_drone.controller.completed_flightpath:
+#             in_formation = False
+#             break
+# print(f"Swarm is in formation")
 
 # Start proper flight
-print(f"Start flight")
-leader_drone.controller.completed_flightpath = False
-monitor()
+# print(f"Start flight")
+# leader_drone.controller.completed_flightpath = False
+# monitor()
+while True:
+    pass

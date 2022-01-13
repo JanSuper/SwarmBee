@@ -5,7 +5,6 @@ from threading import Thread
 from bleak import BleakClient
 from bleak.exc import BleakError
 import time
-# import bluetooth
 
 characteristic_uuid = "B5AF1711-6486-4104-8DBE-84B66CF6E1AD"
 var_threshold = 0.5
@@ -174,34 +173,15 @@ if __name__ == "__main__":
     address_EDB02F = "84:CC:A8:2E:9C:B6"
     address_60FF08 = "9C:9C:1F:E1:B0:62"
 
-    # nearby_devices = bluetooth.discover_devices(lookup_names=True)
-    # print("Found {} devices.".format(len(nearby_devices)))
-    #
-    # for addr, name in nearby_devices:
-    #     print("  {} - {}".format(addr, name))
-
-    bluetooth_modules = []
-
-    bluetooth_EDAD = BackgroundBluetoothSensorRead(address_EDAD6F)
-    bluetooth_EDAD.start()
-    bluetooth_EDAD.wait_until_works()
-    bluetooth_modules.append(bluetooth_EDAD)
-
-    # bluetooth_EDB0 = BackgroundBluetoothSensorRead(address_EDB02F)
-    # bluetooth_EDB0.start()
-    # bluetooth_EDB0.wait_until_works()
-    # bluetooth_modules.append(bluetooth_EDB0)
-
-    # bluetooth_60FF = BackgroundBluetoothSensorRead(address_60FF08)
-    # bluetooth_60FF.start()
-    # bluetooth_60FF.wait_until_works()
-    # bluetooth_modules.append(bluetooth_60FF)
+    bluetooth = BackgroundBluetoothSensorRead(address_60FF08)
+    bluetooth.start()
+    while bluetooth.current_package == [0, 0, 0]:
+        pass
 
     previous_time = time.time()
     interval = 0.1
     while True:
         current_time = time.time()
         if current_time - previous_time > interval:
-            for bluetooth_module in bluetooth_modules:
-                print(f"{bluetooth_module.address}: {bluetooth_module.current_package}")
-                previous_time = current_time
+            print(f"(Bluetooth) Current values: {bluetooth.current_package}")
+            previous_time = current_time
