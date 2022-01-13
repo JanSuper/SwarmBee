@@ -88,7 +88,7 @@ class FlightPathController:
 
     def update_flightpath(self, flightpath, method='Trapezoid'):
         self.flightpath = flightpath
-        next_target = self.initial_position + np.array(self.flightpath.pop(0))
+        next_target = self.current_position + np.array(self.flightpath.pop(0))
         match method:
             case 'Trapezoid':
                 self.trapezoid.set_target(next_target)
@@ -120,7 +120,7 @@ class FlightPathController:
                         # Drone has reached its current target
                         if len(self.flightpath) > 0:
                             # Flightpath contains at least one more target; update drone's target
-                            self.trapezoid.set_target(self.initial_position + np.array(self.flightpath.pop(0)))
+                            self.trapezoid.set_target(self.current_position + np.array(self.flightpath.pop(0)))
                             calculate_u = True
                         else:
                             # Flightpath has been completed
@@ -157,7 +157,7 @@ class FlightPathController:
                         # Drone has reached its current target
                         if len(self.flightpath) > 0:
                             # Flightpath contains at least one more target; update drone's target
-                            self.proportional.setDes(self.initial_position + np.array(self.flightpath.pop(0)))
+                            self.proportional.setDes(self.current_position + np.array(self.flightpath.pop(0)))
                             calculate_u = True
                         else:
                             # Flightpath has been completed
