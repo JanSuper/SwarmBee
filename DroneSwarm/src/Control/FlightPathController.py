@@ -55,10 +55,14 @@ class FlightPathController:
         self.trapezoid.set_target(initial_target)
         self.need_new_position = False
         # Initialize Bluetooth
-        # self.bluetooth = BackgroundBluetoothSensorRead(drone.bt_address)
-        # self.bt_threshold = bt_threshold
-        # self.bluetooth.start()
-        # time.sleep(3)  # TODO: change to 'bluetooth.wait_until_works()' once Bluetooth is fixed
+        if drone.bt_address is not None:
+            self.bluetooth = BackgroundBluetoothSensorRead(drone.bt_address)
+            self.bt_threshold = bt_threshold
+            self.bluetooth.start()
+            while self.bluetooth.current_package == [0, 0, 0]:
+                print(f"(Drone #{drone.number}) Bluetooth values: {self.bluetooth.current_package}")
+                pass
+            print(f"(Drone #{drone.number}) Bluetooth values: {self.bluetooth.current_package}")
         self.interval = interval
         self.proportional = APID(initial_target)
         self.MAX_SPEED = max_speed
