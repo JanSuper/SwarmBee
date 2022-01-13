@@ -8,6 +8,7 @@ from threading import Thread
 
 from DroneSwarm.src.Swarm.drone import Drone
 import DroneSwarm.src.Utilities.KeyPressModule as KeyPress
+from DroneSwarm.src.CV.HandTracking.HandTrackingModule import detect_gesture
 
 
 def force_land():
@@ -306,6 +307,11 @@ print("Setup done")
 #             in_formation = False
 #             break
 # print(f"Swarm is in formation")
+
+# Start hand-tracking module
+tracking_thread = Thread(target=detect_gesture, args=(drones,))
+tracking_thread.daemon = True
+tracking_thread.start()
 
 # Start proper flight
 # print(f"Start flight")
