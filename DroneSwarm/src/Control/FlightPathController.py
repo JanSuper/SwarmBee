@@ -249,9 +249,11 @@ class FlightPathController:
         match method:
             case 'Trapezoid':
                 u = self.trapezoid.calculate()
+                self.findObstacles()
                 return self.avoid(u)
             case 'Proportional':
                 u = self.proportional.getVel()
+                self.findObstacles()
                 return self.avoid(u)
             case 'Circle':
                 return self.circle.calculate_angular_velocity()
