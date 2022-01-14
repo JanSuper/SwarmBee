@@ -314,8 +314,8 @@ class FlightPathController:
                     diffY = self.current_position[1] - pos[1]
                     dis = math.sqrt(diffX ** 2 + diffY ** 2)
                     rddAngle = math.atan2(-diffX, -diffY)
-                    x = u[0] * math.cos(-self.current_position[3]) - u[1] * math.sin(-self.current_position[3])
-                    y = u[0] * math.sin(-self.current_position[3]) + u[1] * math.cos(-self.current_position[3])
+                    x = u[0] * math.cos(-ry) - u[1] * math.sin(-ry)
+                    y = u[0] * math.sin(-ry) + u[1] * math.cos(-ry)
                     rtAngle = math.atan2(x, y)
                     if dis < 40:  # PANIC
                         print("PANIC")
@@ -340,7 +340,9 @@ class FlightPathController:
                         u[0], u[1] = x, 0
                         x = u[0] * math.cos(-rAngle + ry) - u[1] * math.sin(-rAngle + ry)
                         y = u[0] * math.sin(-rAngle + ry) + u[1] * math.cos(-rAngle + ry)
-                        u[0], u[1] = x, y
+                        # changing the yaw with a P method so that the drone keeps looking at the middle of the circle
+                        # TODO CHANGE TRAPEZOID SO THAT INTERNAL VALUES KNOW ABOUT THIS ROTATION TO FACE THE OBSTACLE
+                        u[0], u[1], u[3] = x, y, math.degrees(rddAngle - ry)
                     else:
                         print("It's fine")
                         pass

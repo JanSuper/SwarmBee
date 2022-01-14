@@ -78,6 +78,8 @@ class APID():
         self.obstacleList = list
 
     def getVel(self):
+        if self.reachedTarget:
+            return [0, 0, 0, 0]
         self.findObstacles()
         # print([self.desx, self.desy, self.desz, self.desyaw])
         # print([self.x, self.y, self.z, self.yaw])
@@ -100,6 +102,7 @@ class APID():
         print("There are obstacles")
         panic = False
         speed = math.sqrt(trans[0] ** 2 + trans[1] ** 2)
+
         for pos in self.obstacleList:
             print("new pos")
             diffX = self.x - pos[0]
@@ -132,7 +135,7 @@ class APID():
                 trans = [x, 0, trans[2], trans[3]]
                 x = trans[0] * math.cos(-rAngle + self.ryaw) - trans[1] * math.sin(-rAngle + self.ryaw)
                 y = trans[0] * math.sin(-rAngle + self.ryaw) + trans[1] * math.cos(-rAngle + self.ryaw)
-                trans = [x, y, trans[2], trans[3]]
+                trans = [x, y, trans[2], math.degrees(rddAngle - self.ryaw)]
             else:
                 print("It's fine")
                 pass
@@ -169,9 +172,8 @@ class APID():
 
 def main():
     pid = APID([0, 100, 0, 0])
-    pid.current_package = [0.2, 0, 0]
-    pid.acceptL = True
-    pid.realUpdate([0, 0, 0, 90])
+    pid.setObstacle([[0,20]])
+    pid.realUpdate([-10, 7, 0, 0])
     print(pid.getVel())
 
 
