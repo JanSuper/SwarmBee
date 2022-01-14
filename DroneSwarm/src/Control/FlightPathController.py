@@ -326,7 +326,8 @@ class FlightPathController:
                         else:
                             print("FIRST PANIC")
                             panic = True
-                            u[0], u[1] = diffX, diffY
+                            factor = 40/math.sqrt(diffX**2 + diffY**2)
+                            u[0], u[1] = diffX*factor, diffY*factor
                             print(u)
                     elif abs(rddAngle - rtAngle) >= .5 * math.pi:
                         print("flying in opposite direction so it's safe")
