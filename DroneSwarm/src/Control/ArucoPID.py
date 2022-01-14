@@ -93,8 +93,8 @@ class APID():
         # print(trans)
         trans = list(np.around(np.array(trans), decimals=1))
         # print(trans)
-        if self.obstacleFound:
-           trans = self.avoidObstacles(trans)
+        #if self.obstacleFound:
+        #   trans = self.avoidObstacles(trans)
         return trans
 
     def avoidObstacles(self, trans):
