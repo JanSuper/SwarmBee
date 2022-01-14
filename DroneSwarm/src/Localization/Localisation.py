@@ -35,7 +35,7 @@ class Localiser:
         # print(realDistance)
 
 
-        realPos = [-realDistance[0] + arucoX, -realDistance[1] + arucoY]
+        realPos = [-realDistance[0] + arucoX, realDistance[1] + arucoY]
 
         return realPos
 
