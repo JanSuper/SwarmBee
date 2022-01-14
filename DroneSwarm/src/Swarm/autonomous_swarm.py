@@ -7,7 +7,7 @@ from threading import Thread
 
 from DroneSwarm.src.Swarm.drone import Drone
 import DroneSwarm.src.Utilities.KeyPressModule as KeyPress
-from DroneSwarm.src.CV.HandTracking.HandTrackingModule import detect_gesture
+# from DroneSwarm.src.CV.HandTracking.HandTrackingModule import detect_gesture
 
 
 def force_land():
@@ -79,7 +79,7 @@ def stop_program():
 
 def setup_drone(drone):
     # Perform takeoff
-    messages = ["command", "battery?", "streamoff", "streamon"]
+    messages = ["command", "battery?", "streamoff", "streamon", "takeoff"]
     for message in messages:
         print(f"Sending message to drone #{drone.number}: {message}")
         drone.send(message)
@@ -236,9 +236,9 @@ force_land_thread.start()
 # Control parameters
 method = "Proportional"  # Trapezoid, Proportional, Circle
 no_drones = 1
-leader_bluetooth_address = '84:CC:A8:2E:9C:B6'  # EDAD = 84:CC:A8:2F:E9:32, EDB0 = 84:CC:A8:2E:9C:B6,
+leader_bluetooth_address = '84:CC:A8:2F:E9:32'  # EDAD = 84:CC:A8:2F:E9:32, EDB0 = 84:CC:A8:2E:9C:B6,
 # 60FF = 9C:9C:1F:E1:B0:62
-leader_initial_flightpath = []
+leader_initial_flightpath = [[200, 0, 0, 0]]
 follower_offsets = [[-50, -50, 0, 0], [-50, 50, 0, 0]]
 
 # WARNING: Make sure leader drone connects to interface_names[0]
@@ -288,24 +288,24 @@ setup_done = True
 print("Setup done")
 
 # Get followers into formation
-# leader_drone.controller.completed_flightpath = True
-# start_flying()
-# in_formation = False
-# while not in_formation:
-#     in_formation = True
-#     for follower_drone in drones[1:]:
-#         if not follower_drone.controller.completed_flightpath:
-#             in_formation = False
-#             break
-# print(f"Swarm is in formation")
+leader_drone.controller.completed_flightpath = True
+start_flying()
+in_formation = False
+while not in_formation:
+    in_formation = True
+    for follower_drone in drones[1:]:
+        if not follower_drone.controller.completed_flightpath:
+            in_formation = False
+            break
+print(f"Swarm is in formation")
 
 # Start hand-tracking module (not working)
 # tracking_process = Process(target=detect_gesture, args=(drones,))
 # tracking_process.start()
 
 # Start proper flight
-# print(f"Start flight")
-# leader_drone.controller.completed_flightpath = False
-# monitor()
+print(f"Start flight")
+leader_drone.controller.completed_flightpath = False
+monitor()
 while True:
     pass

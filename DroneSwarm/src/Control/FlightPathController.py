@@ -79,14 +79,14 @@ class FlightPathController:
         # self.df = pd.DataFrame([self.tim, self.pos, self.tar, self.sensor, self.control, self.bt]).T
 
         # Initialize Bluetooth
-        if drone.bt_address is not None:
-            self.bluetooth = BackgroundBluetoothSensorRead(drone.bt_address)
-            self.bt_threshold = bt_threshold
-            self.bluetooth.start()
-            while self.bluetooth.current_package == [0, 0, 0]:
-                # print(f"(Drone #{drone.number}) Bluetooth values: {self.bluetooth.current_package}")
-                pass
-            # print(f"(Drone #{drone.number}) Bluetooth values: {self.bluetooth.current_package}")
+        # if drone.bt_address is not None:
+        #     self.bluetooth = BackgroundBluetoothSensorRead(drone.bt_address)
+        #     self.bt_threshold = bt_threshold
+        #     self.bluetooth.start()
+        #     while self.bluetooth.current_package == [0, 0, 0]:
+        #         # print(f"(Drone #{drone.number}) Bluetooth values: {self.bluetooth.current_package}")
+        #         pass
+        #     # print(f"(Drone #{drone.number}) Bluetooth values: {self.bluetooth.current_package}")
 
         self.flight_interrupted = False
         self.position_before_interruption = None
@@ -132,8 +132,6 @@ class FlightPathController:
             self.proportional.setDes(self.position_before_interruption)
 
     def fly_you_fool(self, method='Trapezoid'):
-        # datetime object containing current date and time
-        now1 = datetime.now()
         match method:
             case 'Trapezoid':
                 self.fly_trapezoid()
@@ -271,11 +269,11 @@ class FlightPathController:
         match method:
             case 'Trapezoid':
                 u = self.trapezoid.calculate()
-                self.findObstacles()
+                # self.findObstacles()
                 return self.avoid(u)
             case 'Proportional':
                 u = self.proportional.getVel()
-                self.findObstacles()
+                # self.findObstacles()
                 return self.avoid(u)
             case 'Circle':
                 return self.circle.calculate_angular_velocity()
