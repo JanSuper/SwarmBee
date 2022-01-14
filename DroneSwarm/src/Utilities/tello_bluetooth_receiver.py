@@ -197,17 +197,21 @@ if __name__ == "__main__":
             tim.append(current_time - query_time)
             # control.append([0, 0, 0, 0])
             # sensor.append([0, 0, 0, 0])
-            bt.append(bluetooth.current_package)
-            print(f"(Bluetooth) Current values (NORM): {bluetooth.current_package}")
+            test_values = [ bluetooth.current_package[0], bluetooth.current_package[1], bluetooth.current_package[2]]
+            bt.append(test_values)
+            print(f"(Bluetooth) Current values (NORM): {test_values}")
+            if bt[-1] != test_values:
+
+                print('You souldn@t be seein this')
             previous_time = current_time
-        if current_time - query_time > 61:
+        if current_time - query_time > 10:
             testing = False
             print(bt)
     # pos, tar, sensor, control,
     df = pd.DataFrame([tim, bt]).T
     # 'pos', 'target', 'sensor', 'control',
     df.columns = ['time', 'bluetooth']
-    # df.to_csv('BluetoothFlightControl3.csv')
+    df.to_csv('BluetoothFlightControl3.csv')
 
 # BluetoothFlightControl.csv, BluetoothFlightControl1.csv, BluetoothFlightControl2.csv, BluetoothFlightControl3.csv
 # No object within 2 meters all around, object at 1 meter in front, object at 1 meter left, object at 1 meter right
