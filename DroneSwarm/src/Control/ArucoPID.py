@@ -93,8 +93,8 @@ class APID():
         # print(trans)
         trans = list(np.around(np.array(trans), decimals=1))
         # print(trans)
-        #if self.obstacleFound:
-        #   trans = self.avoidObstacles(trans)
+        if self.obstacleFound:
+           trans = self.avoidObstacles(trans)
         return trans
 
     def avoidObstacles(self, trans):
@@ -121,7 +121,9 @@ class APID():
                 else:
                     print("FIRST PANIC")
                     panic = True
-                    trans = [diffX, diffY, trans[2], trans[3]]
+                    x = diffX * math.cos(self.ryaw) - diffY * math.sin(self.ryaw)
+                    y = diffX * math.sin(self.ryaw) + diffY * math.cos(self.ryaw)
+                    trans = [x, y, trans[2], trans[3]]
                     print(trans)
             elif (abs(rddAngle - rtAngle)) >= (.5 * math.pi):
                 print("flying in opposite direction so it's safe")
@@ -173,7 +175,7 @@ class APID():
 def main():
     pid = APID([0, 100, 0, 0])
     pid.setObstacle([[0,20]])
-    pid.realUpdate([-10, 7, 0, 0])
+    pid.realUpdate([0, 10, 0, 90])
     print(pid.getVel())
 
 
