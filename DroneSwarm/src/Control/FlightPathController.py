@@ -9,6 +9,7 @@ from DroneSwarm.src.Utilities.tello_bluetooth_receiver import BackgroundBluetoot
 from DroneSwarm.src.Control.ArucoPID import APID
 from DroneSwarm.src.Control.Circle import Circle
 
+
 # calculate the angular velocity given the speed and direction to spin in, with a radius of the arc to follow
 def calculate_angular_velocity(speed, radius=100):
     control = [speed, 0, 0, 0]
@@ -83,9 +84,9 @@ class FlightPathController:
             self.bt_threshold = bt_threshold
             self.bluetooth.start()
             while self.bluetooth.current_package == [0, 0, 0]:
-                print(f"(Drone #{drone.number}) Bluetooth values: {self.bluetooth.current_package}")
+                # print(f"(Drone #{drone.number}) Bluetooth values: {self.bluetooth.current_package}")
                 pass
-            print(f"(Drone #{drone.number}) Bluetooth values: {self.bluetooth.current_package}")
+            # print(f"(Drone #{drone.number}) Bluetooth values: {self.bluetooth.current_package}")
 
         self.flight_interrupted = False
         self.position_before_interruption = None
@@ -342,14 +343,14 @@ class FlightPathController:
                         print("PANIC")
                         if panic:
                             print("MULTIPLE PANIC")
-                            factor = (40-math.sqrt(diffX**2 + diffY**2))/math.sqrt(diffX**2 + diffY**2)
-                            u[0] += diffX*factor
-                            u[1] += diffY*factor
+                            factor = (40 - math.sqrt(diffX ** 2 + diffY ** 2)) / math.sqrt(diffX ** 2 + diffY ** 2)
+                            u[0] += diffX * factor
+                            u[1] += diffY * factor
                         else:
                             print("FIRST PANIC")
                             panic = True
-                            factor = (40-math.sqrt(diffX**2 + diffY**2))/math.sqrt(diffX**2 + diffY**2)
-                            u[0], u[1] = diffX*factor, diffY*factor
+                            factor = (40 - math.sqrt(diffX ** 2 + diffY ** 2)) / math.sqrt(diffX ** 2 + diffY ** 2)
+                            u[0], u[1] = diffX * factor, diffY * factor
                             print(u)
                     elif abs(rddAngle - rtAngle) >= .5 * math.pi:
                         print("flying in opposite direction so it's safe")
@@ -365,7 +366,7 @@ class FlightPathController:
                         y = u[0] * math.sin(-rAngle + ry) + u[1] * math.cos(-rAngle + ry)
                         # changing the yaw with a P method so that the drone keeps looking at the middle of the circle
                         # TODO CHANGE TRAPEZOID SO THAT INTERNAL VALUES KNOW ABOUT THIS ROTATION TO FACE THE OBSTACLE
-                        #u[0], u[1], u[3] = x, y, math.degrees(rddAngle - ry)
+                        # u[0], u[1], u[3] = x, y, math.degrees(rddAngle - ry)
                         u[0], u[1] = x, y
                     else:
                         print("It's fine")
