@@ -1,14 +1,13 @@
 # This file uses DroneBlocks' UDP send-receiver example code as a base
 # Source: https://github.com/dbaldwin/DroneBlocks-Tello-Python/blob/master/lesson3-udp-send-receive/UDPSendReceive.py
 
-import os
 import time
 import numpy as np
 from threading import Thread
 
 from DroneSwarm.src.Swarm.drone import Drone
 import DroneSwarm.src.Utilities.KeyPressModule as KeyPress
-from DroneSwarm.src.CV.HandTracking.HandTrackingModule import detect_gesture
+# from DroneSwarm.src.CV.HandTracking.HandTrackingModule import detect_gesture
 
 
 def force_land():
@@ -80,7 +79,7 @@ def stop_program():
 
 def setup_drone(drone):
     # Perform takeoff
-    messages = ["command", "battery?", "streamoff", "streamon"]
+    messages = ["command", "battery?", "streamoff", "streamon", "takeoff"]
     for message in messages:
         print(f"Sending message to drone #{drone.number}: {message}")
         drone.send(message)
@@ -229,17 +228,6 @@ def send_dummy_command():
             previous_time = current_time
 
 
-def setup_wifi_adapter(interface_name, udp_port):
-    # TODO: fix root access issues?
-    commands = [
-        f'iptables -A INPUT -i {interface_name} -p udp --dport 11111 -j ACCEPT',
-        f'iptables -A INPUT -i {interface_name} -p udp --dport {udp_port} -j ACCEPT',
-        f'iptables -A PREROUTING -t nat -i {interface_name} -p udp --dport 11111 -j REDIRECT --to-port {udp_port}'
-    ]
-    for command in commands:
-        os.system(command)
-
-
 # Setup forced landing
 force_land_thread = Thread(target=force_land)
 force_land_thread.daemon = True
@@ -248,21 +236,21 @@ force_land_thread.start()
 # Control parameters
 method = "Proportional"  # Trapezoid, Proportional, Circle
 no_drones = 1
-udp_ports = [11111, 11113, 11115]  # 11111, 11113, 11115 (EDAD, EDB0, 60FF)
-interface_names = ['wlxd03745f79670', 'wlxd0374572e205', 'wlx6c5ab04a495e']  # wlxd03745f79670, wlxd0374572e205, wlx6c5ab04a495e
-leader_bluetooth_address = '84:CC:A8:2F:E9:32'  # 84:CC:A8:2F:E9:32, 84:CC:A8:2E:9C:B6, 9C:9C:1F:E1:B0:62
-leader_initial_flightpath = []
+leader_bluetooth_address = '84:CC:A8:2F:E9:32'  # EDAD = 84:CC:A8:2F:E9:32, EDB0 = 84:CC:A8:2E:9C:B6,
+# 60FF = 9C:9C:1F:E1:B0:62
+leader_initial_flightpath = [[200, 0, 0, 0]]
 follower_offsets = [[-50, -50, 0, 0], [-50, 50, 0, 0]]
 
-# these are each a list of interfaces that is created from interface_names.
-# will add in order of the drone order: EDAD, EDB0, 60FF
-interfaces = [interface_names[:no_drones]]
-udps = [udp_ports[:no_drones]]
+# WARNING: Make sure leader drone connects to interface_names[0]
+udp_ports = [11111, 11113, 11115]
+udp_ports = udp_ports[:no_drones]
+interface_names = ['wlxd03745f79670', 'wlxd0374572e205', 'wlx6c5ab04a495e']
+interfaces_names = interface_names[:no_drones]
+
 drones = []
 # Create leader drone
-setup_wifi_adapter(interfaces[0], udps[0])
-leader_drone = Drone(1, None, leader_initial_flightpath, np.array([0, 0, 0, 0]), interfaces.pop(0),
-                     udps.pop(0), leader_bluetooth_address)
+leader_drone = Drone(1, None, leader_initial_flightpath, np.array([0, 0, 0, 0]), interfaces_names.pop(0),
+                     udp_ports.pop(0), leader_bluetooth_address)
 drones.append(leader_drone)
 
 # Enable receiver
@@ -281,11 +269,10 @@ setup_drone(leader_drone)
 # Create follower drones
 drone_number = 2
 while drone_number <= no_drones:
-    setup_wifi_adapter(interfaces[0], udps[0])
     follower_offset = np.array(follower_offsets.pop(0))
     follower_flightpath = [[leader_drone.controller.initial_position + follower_offset]]
-    follower_drone = Drone(drone_number, leader_drone, follower_flightpath, follower_offset, interfaces.pop(0),
-                           udps.pop(0), None)
+    follower_drone = Drone(drone_number, leader_drone, follower_flightpath, follower_offset, interfaces_names.pop(0),
+                           udp_ports.pop(0), None)
     drones.append(follower_drone)
     drone_number += 1
 
@@ -301,25 +288,24 @@ setup_done = True
 print("Setup done")
 
 # Get followers into formation
-# leader_drone.controller.completed_flightpath = True
-# start_flying()
-# in_formation = False
-# while not in_formation:
-#     in_formation = True
-#     for follower_drone in drones[1:]:
-#         if not follower_drone.controller.completed_flightpath:
-#             in_formation = False
-#             break
-# print(f"Swarm is in formation")
+leader_drone.controller.completed_flightpath = True
+start_flying()
+in_formation = False
+while not in_formation:
+    in_formation = True
+    for follower_drone in drones[1:]:
+        if not follower_drone.controller.completed_flightpath:
+            in_formation = False
+            break
+print(f"Swarm is in formation")
 
-# Start hand-tracking module
-tracking_thread = Thread(target=detect_gesture, args=(drones,))
-tracking_thread.daemon = True
-tracking_thread.start()
+# Start hand-tracking module (not working)
+# tracking_process = Process(target=detect_gesture, args=(drones,))
+# tracking_process.start()
 
 # Start proper flight
-# print(f"Start flight")
-# leader_drone.controller.completed_flightpath = False
-# monitor()
+print(f"Start flight")
+leader_drone.controller.completed_flightpath = False
+monitor()
 while True:
     pass
