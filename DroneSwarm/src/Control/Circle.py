@@ -13,17 +13,17 @@ class Circle:
             control[0] = -1 * self.speed
         else:
             control[0] = self.speed
-        print(math.degrees(control[1] / self.radius))
-        angular_velocity = -1 * round(math.degrees(control[1] / self.radius))
+        print(math.degrees(control[0] / self.radius))
+        angular_velocity = -1 * round(math.degrees(control[0] / self.radius))
         control[3] = angular_velocity
         return control
 
-    def __init__(self, drone_number=1, speed=50, theta=360, clockwise=False, facing_center=False, in_position = False, radius=100, n_drones=4, center=None,
-                 position=None):
+    def __init__(self, drone_number=1, speed=50, theta=360, clockwise=False, facing_center=False, in_position=False,
+                 radius=100, n_drones=4, center=None, position=None):
         if position is None:
             position = [0, 0, 0, 0]
         if center is None:
-            center = [0, 0, 0, 0]
+            center = [100, 200, 90, 180]
         self.speed = speed
         self.clockwise = clockwise
         self.radius = radius  # radius of the orbit path
@@ -37,8 +37,9 @@ class Circle:
 
     def calculate_starting_positions(self):
         starting_pos = [0, 0, 0, 0]
-        x = self.radius*math.cos((self.drone_number-1)*self.theta)
-        y = self.radius*math.sin((self.drone_number-1)*self.theta)
+        # self.theta should be projected from drone's yaw
+        x = self.radius*math.cos((self.drone_number-1)*self.theta) + self.center_of_orbit[0]
+        y = self.radius*math.sin((self.drone_number-1)*self.theta) + self.center_of_orbit[1]
         starting_pos[0], starting_pos[1] = x, y
         return starting_pos
 
@@ -75,6 +76,8 @@ if __name__ == "__main__":
     circle = Circle(drone_number=d, n_drones=n)
     print(f'circle speed is {circle.speed}')
     for i in range(n):
+        print('---------------')
+        print(f'drone number {circle.drone_number}')
         print(f'Starting position is {circle.calculate_starting_positions()}')
         print(f'control order(for angular vel) is {circle.calculate_angular_velocity()}')
         circle.drone_number += 1
