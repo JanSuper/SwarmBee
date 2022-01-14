@@ -246,19 +246,23 @@ force_land_thread.daemon = True
 force_land_thread.start()
 
 # Control parameters
-method = "Trapezoid"  # Trapezoid, Proportional, Circle
-udp_ports = [11111, 11113]  # 11111, 11113, 11115 (EDAD, EDB0, 60FF)
-interface_names = ['wlxd03745f79670', 'wlxd0374572e205']  # wlxd03745f79670, wlxd0374572e205, wlx6c5ab04a495e
+method = "Proportional"  # Trapezoid, Proportional, Circle
+no_drones = 1
+udp_ports = [11111, 11113, 11115]  # 11111, 11113, 11115 (EDAD, EDB0, 60FF)
+interface_names = ['wlxd03745f79670', 'wlxd0374572e205', 'wlx6c5ab04a495e']  # wlxd03745f79670, wlxd0374572e205, wlx6c5ab04a495e
 leader_bluetooth_address = '84:CC:A8:2F:E9:32'  # 84:CC:A8:2F:E9:32, 84:CC:A8:2E:9C:B6, 9C:9C:1F:E1:B0:62
 leader_initial_flightpath = []
 follower_offsets = [[-50, -50, 0, 0], [-50, 50, 0, 0]]
 
-no_drones = len(interface_names)
+# these are each a list of interfaces that is created from interface_names.
+# will add in order of the drone order: EDAD, EDB0, 60FF
+interfaces = [interface_names[:no_drones]]
+udps = [udp_ports[:no_drones]]
 drones = []
 # Create leader drone
-setup_wifi_adapter(interface_names[0], udp_ports[0])
-leader_drone = Drone(1, None, leader_initial_flightpath, np.array([0, 0, 0, 0]), interface_names.pop(0),
-                     udp_ports.pop(0), leader_bluetooth_address)
+setup_wifi_adapter(interfaces[0], udps[0])
+leader_drone = Drone(1, None, leader_initial_flightpath, np.array([0, 0, 0, 0]), interfaces.pop(0),
+                     udps.pop(0), leader_bluetooth_address)
 drones.append(leader_drone)
 
 # Enable receiver
@@ -277,11 +281,11 @@ setup_drone(leader_drone)
 # Create follower drones
 drone_number = 2
 while drone_number <= no_drones:
-    setup_wifi_adapter(interface_names[0], udp_ports[0])
+    setup_wifi_adapter(interfaces[0], udps[0])
     follower_offset = np.array(follower_offsets.pop(0))
     follower_flightpath = [[leader_drone.controller.initial_position + follower_offset]]
-    follower_drone = Drone(drone_number, leader_drone, follower_flightpath, follower_offset, interface_names.pop(0),
-                           udp_ports.pop(0), None)
+    follower_drone = Drone(drone_number, leader_drone, follower_flightpath, follower_offset, interfaces.pop(0),
+                           udps.pop(0), None)
     drones.append(follower_drone)
     drone_number += 1
 

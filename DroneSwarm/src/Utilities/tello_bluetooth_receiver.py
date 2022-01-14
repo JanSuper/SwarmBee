@@ -6,6 +6,9 @@ from bleak import BleakClient
 from bleak.exc import BleakError
 import time
 
+import pandas as pd
+import datetime
+
 characteristic_uuid = "B5AF1711-6486-4104-8DBE-84B66CF6E1AD"
 var_threshold = 0.5
 interval_threshold = 15
@@ -110,6 +113,7 @@ class Connection:
             self.sensor_read.current_package[0] = self.current_package.sensor_1
             self.sensor_read.current_package[1] = self.current_package.sensor_2
             self.sensor_read.current_package[2] = self.current_package.sensor_3
+            # print(f"(Bluetooth) Current values (RAW): {self.sensor_read.current_package}")
             self.history[0].append(self.sensor_read.current_package[0])
             self.history[1].append(self.sensor_read.current_package[1])
             self.history[2].append(self.sensor_read.current_package[2])
@@ -170,18 +174,41 @@ class Connection:
 
 if __name__ == "__main__":
     address_EDAD6F = "84:CC:A8:2F:E9:32"
-    address_EDB02F = "84:CC:A8:2E:9C:B6"
-    address_60FF08 = "9C:9C:1F:E1:B0:62"
-
-    bluetooth = BackgroundBluetoothSensorRead(address_60FF08)
+    # address_EDB02F = "84:CC:A8:2E:9C:B6"
+    # address_60FF08 = "9C:9C:1F:E1:B0:62"
+    pos, tar, control, sensor = [], [], [], []
+    tim, bt = [], []
+    bluetooth = BackgroundBluetoothSensorRead(address_EDAD6F)
     bluetooth.start()
-    while bluetooth.current_package == [0, 0, 0]:
-        pass
 
+    # plot.updateGraph(*u, 0)
+    while bluetooth.current_package == [0, 0, 0]:
+        print(bluetooth.current_package)
+        pass
+    testing = True
     previous_time = time.time()
+    query_time = previous_time
     interval = 0.1
-    while True:
+    while testing:
         current_time = time.time()
         if current_time - previous_time > interval:
-            print(f"(Bluetooth) Current values: {bluetooth.current_package}")
+            # pos.append([0, 0, 0, 0])
+            # tar.append([0, 0, 0, 0])
+            tim.append(current_time - query_time)
+            # control.append([0, 0, 0, 0])
+            # sensor.append([0, 0, 0, 0])
+            bt.append(bluetooth.current_package)
+            print(f"(Bluetooth) Current values (NORM): {bluetooth.current_package}")
             previous_time = current_time
+        if current_time - query_time > 61:
+            testing = False
+            print(bt)
+    # pos, tar, sensor, control,
+    df = pd.DataFrame([tim, bt]).T
+    # 'pos', 'target', 'sensor', 'control',
+    df.columns = ['time', 'bluetooth']
+    # df.to_csv('BluetoothFlightControl3.csv')
+
+# BluetoothFlightControl.csv, BluetoothFlightControl1.csv, BluetoothFlightControl2.csv, BluetoothFlightControl3.csv
+# No object within 2 meters all around, object at 1 meter in front, object at 1 meter left, object at 1 meter right
+# BT_test_2_meters(f, l, r)

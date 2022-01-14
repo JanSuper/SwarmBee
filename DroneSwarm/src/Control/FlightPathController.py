@@ -1,10 +1,21 @@
 import time
 import numpy as np
 import math
+import pandas as pd
+import datetime
+
 from DroneSwarm.src.Control.Trapezoid import Trapezoid
 from DroneSwarm.src.Utilities.tello_bluetooth_receiver import BackgroundBluetoothSensorRead
 from DroneSwarm.src.Control.ArucoPID import APID
 from DroneSwarm.src.Control.Circle import Circle
+
+# calculate the angular velocity given the speed and direction to spin in, with a radius of the arc to follow
+def calculate_angular_velocity(speed, radius=100):
+    control = [speed, 0, 0, 0]
+    print(math.degrees(control[0] / radius))
+    angular_velocity = -1 * round(math.degrees(control[0] / radius))
+    control[3] = angular_velocity
+    return control
 
 
 # Function to check if all the values of list1 are greater than val
@@ -63,6 +74,8 @@ class FlightPathController:
 
         self.current_position = initial_position
         self.need_new_position = False
+        # self.pos, self.tar, self.tim, self.control, self.sensor, self.bt = [], [], [], [], [], []
+        # self.df = pd.DataFrame([self.tim, self.pos, self.tar, self.sensor, self.control, self.bt]).T
 
         # Initialize Bluetooth
         if drone.bt_address is not None:
@@ -118,6 +131,8 @@ class FlightPathController:
             self.proportional.setDes(self.position_before_interruption)
 
     def fly_you_fool(self, method='Trapezoid'):
+        # datetime object containing current date and time
+        now1 = datetime.now()
         match method:
             case 'Trapezoid':
                 self.fly_trapezoid()
@@ -161,6 +176,12 @@ class FlightPathController:
                     # Send velocities to drone
                     self.drone.send_rc(u)
                 previous_time = now
+                # self.pos.append(self.current_position)
+                # self.tar.append(trapezoid.target)
+                # self.tim.append(now - query_time)
+                # self.control.append(u)
+                # self.sensor.append(y)
+                # self.bt.append(bluetooth.current_package)
 
     # Function that flies the drone by using the Proportional controller
     def fly_proportional(self):

@@ -30,12 +30,11 @@ class Localiser:
         # print(angle)
         # print(radYaw)
 
-        realDistance = [x * math.cos(-radYaw) - y * math.sin(-radYaw),x * math.sin(-radYaw) + y *math.cos(-radYaw)]
+        realDistance = [x * math.cos(-radYaw) - y * math.sin(-radYaw), x * math.sin(-radYaw) + y * math.cos(-radYaw)]
 
         # print(realDistance)
 
-
-        realPos = [-realDistance[0] + arucoX, realDistance[1] + arucoY]
+        realPos = [-realDistance[0] + arucoX, -realDistance[1] + arucoY]
 
         return realPos
 
