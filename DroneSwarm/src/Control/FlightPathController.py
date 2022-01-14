@@ -321,12 +321,13 @@ class FlightPathController:
                         print("PANIC")
                         if panic:
                             print("MULTIPLE PANIC")
-                            u[0] += diffX
-                            u[1] += diffY
+                            factor = (40-math.sqrt(diffX**2 + diffY**2))/math.sqrt(diffX**2 + diffY**2)
+                            u[0] += diffX*factor
+                            u[1] += diffY*factor
                         else:
                             print("FIRST PANIC")
                             panic = True
-                            factor = 40/math.sqrt(diffX**2 + diffY**2)
+                            factor = (40-math.sqrt(diffX**2 + diffY**2))/math.sqrt(diffX**2 + diffY**2)
                             u[0], u[1] = diffX*factor, diffY*factor
                             print(u)
                     elif abs(rddAngle - rtAngle) >= .5 * math.pi:
