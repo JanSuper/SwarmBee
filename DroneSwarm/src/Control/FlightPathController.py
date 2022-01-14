@@ -342,7 +342,8 @@ class FlightPathController:
                         y = u[0] * math.sin(-rAngle + ry) + u[1] * math.cos(-rAngle + ry)
                         # changing the yaw with a P method so that the drone keeps looking at the middle of the circle
                         # TODO CHANGE TRAPEZOID SO THAT INTERNAL VALUES KNOW ABOUT THIS ROTATION TO FACE THE OBSTACLE
-                        u[0], u[1], u[3] = x, y, math.degrees(rddAngle - ry)
+                        #u[0], u[1], u[3] = x, y, math.degrees(rddAngle - ry)
+                        u[0], u[1] = x, y
                     else:
                         print("It's fine")
                         pass
