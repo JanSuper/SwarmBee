@@ -3,7 +3,6 @@ import mediapipe as mp
 import time
 import math
 import imutils
-import socket
 
 from queue import Queue
 
@@ -264,31 +263,75 @@ class handDetector():
         # print(self.rectSizes.qsize())
 
 
-def execute_gesture(gesture):
+def send(drones, command):
+    for drone in drones:
+        drone.sendto(command.encode(), ('192.168.10.1', 8889))
+
+
+def continue_flight(drones):
+    send(drones, "rc 0 0 0 0")
+
+    # Give drones some time to become stationary
+    start_time = time.time()
+    while time.time() - start_time < 1.0:
+        pass
+
+    for drone in drones:
+        drone.controller.restore_position_before_interruption()
+
+    # Continue the flight
+    for drone in drones:
+        drone.controller.flight_interrupted = False
+
+
+def interrupt_flight(drones):
+    for drone in drones:
+        drone.controller.flight_interrupted = True
+
+    # Wait until all controllers have finished sending new velocities
+    start_time = time.time()
+    while time.time() - start_time < 0.3:
+        pass
+
+    send(drones, "rc 0 0 0 0")
+
+    # Give drones some time to become stationary
+    start_time = time.time()
+    while time.time() - start_time < 1.0:
+        pass
+
+    for drone in drones:
+        drone.controller.save_current_position()
+
+
+def execute_gesture(drones, gesture):
+    if not drones[0].controller.flight_interrupted:
+        interrupt_flight(drones)
+
     velocity = 15
     if gesture == "go left":
-        drone.sendto(f"rc -{velocity} 0 0 0".encode(), ('192.168.10.1', 8889))
+        send(drones, f"rc -{velocity} 0 0 0")
     elif gesture == "go right":
-        drone.sendto(f"rc {velocity} 0 0 0".encode(), ('192.168.10.1', 8889))
+        send(drones, f"rc {velocity} 0 0 0")
     elif gesture == "go backward":
-        drone.sendto(f"rc 0 -{velocity} 0 0".encode(), ('192.168.10.1', 8889))
+        send(drones, f"rc 0 -{velocity} 0 0")
     elif gesture == "go forward":
-        drone.sendto(f"rc 0 {velocity} 0 0".encode(), ('192.168.10.1', 8889))
+        send(drones, f"rc 0 {velocity} 0 0")
     elif gesture == "go down":
-        drone.sendto(f"rc 0 0 -{velocity} 0".encode(), ('192.168.10.1', 8889))
+        send(drones, f"rc 0 0 -{velocity} 0")
     elif gesture == "go up":
-        drone.sendto(f"rc 0 0 {velocity} 0".encode(), ('192.168.10.1', 8889))
+        send(drones, f"rc 0 0 {velocity} 0")
     elif gesture == "spin left":
-        drone.sendto(f"rc 0 0 0 -{velocity}".encode(), ('192.168.10.1', 8889))
+        send(drones, f"rc 0 0 0 -{velocity}")
     elif gesture == "spin right":
-        drone.sendto(f"rc 0 0 0 {velocity}".encode(), ('192.168.10.1', 8889))
+        send(drones, f"rc 0 0 0 {velocity}")
     elif gesture == "land":
-        drone.sendto("land".encode(), ('192.168.10.1', 8889))
+        send(drones, "land")
     else:
-        drone.sendto(f"rc 0 0 0 0".encode(), ('192.168.10.1', 8889))
+        send(drones, f"rc 0 0 0 0")
 
 
-def main():
+def detect_gesture(drones):
     cap = cv2.VideoCapture(0)
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
@@ -306,17 +349,10 @@ def main():
             cv2.putText(img, f'{current_gesture}', (bbox[0], bbox[3] + 60), cv2.FONT_HERSHEY_COMPLEX,
                         1, (0, 0, 255), 3)
             if current_gesture != previous_gesture:
-                execute_gesture(current_gesture)
+                execute_gesture(drones, current_gesture)
             previous_gesture = current_gesture
+        else:
+            if drones[0].controller.flight_interrupted:
+                continue_flight(drones)
         cv2.imshow("Image", img)
         cv2.waitKey(1)
-
-
-drone = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-drone.setsockopt(socket.SOL_SOCKET, 25, 'wlxd03745f79670'.encode())
-drone.bind(('', 9000))
-
-drone.sendto("command".encode(), ('192.168.10.1', 8889))
-drone.sendto("takeoff".encode(), ('192.168.10.1', 8889))
-time.sleep(5)
-main()

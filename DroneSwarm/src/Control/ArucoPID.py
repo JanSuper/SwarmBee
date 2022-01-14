@@ -22,6 +22,12 @@ class APID():
         self.obstacleFound = False
         self.obstacleList = [[0, 0], [0, 0], [0, 0]]
 
+        self.acceptR = False
+        self.acceptF = False
+        self.acceptL = False
+
+        self.current_package = [0,0,0]
+
     def realUpdate(self, x, y, z, yaw):
         self.x = x
         self.y = y
@@ -72,6 +78,9 @@ class APID():
         self.obstacleList = list
 
     def getVel(self):
+        if self.reachedTarget:
+            return [0, 0, 0, 0]
+        self.findObstacles()
         # print([self.desx, self.desy, self.desz, self.desyaw])
         # print([self.x, self.y, self.z, self.yaw])
         pre = [self.desx - self.x, self.desy - self.y]
@@ -84,8 +93,8 @@ class APID():
         # print(trans)
         trans = list(np.around(np.array(trans), decimals=1))
         # print(trans)
-        # if self.obstacleFound:
-        #    trans = self.avoidObstacles(trans)
+        #if self.obstacleFound:
+        #   trans = self.avoidObstacles(trans)
         return trans
 
     def avoidObstacles(self, trans):
@@ -93,6 +102,7 @@ class APID():
         print("There are obstacles")
         panic = False
         speed = math.sqrt(trans[0] ** 2 + trans[1] ** 2)
+
         for pos in self.obstacleList:
             print("new pos")
             diffX = self.x - pos[0]
@@ -125,19 +135,45 @@ class APID():
                 trans = [x, 0, trans[2], trans[3]]
                 x = trans[0] * math.cos(-rAngle + self.ryaw) - trans[1] * math.sin(-rAngle + self.ryaw)
                 y = trans[0] * math.sin(-rAngle + self.ryaw) + trans[1] * math.cos(-rAngle + self.ryaw)
-                trans = [x, y, trans[2], trans[3]]
+                trans = [x, y, trans[2], math.degrees(rddAngle - self.ryaw)]
             else:
                 print("It's fine")
                 pass
         return trans
 
+    def findObstacles(self):
+        if self.acceptL or self.acceptR or self.acceptF:
+            xs = self.x
+            ys = self.y
+            obstacleList = []
+            if self.acceptL:
+                tempyaw = self.yaw + 270
+                tempryaw = math.radians(tempyaw)
+                dis = self.current_package[0]
+                obstacle = [xs + math.sin(tempryaw) * dis * 100, ys + math.cos(tempryaw) * dis * 100]
+                print(obstacle)
+                obstacleList.append(obstacle)
+            if self.acceptF:
+                tempyaw = self.yaw
+                tempryaw = math.radians(tempyaw)
+                dis = self.current_package[1]
+                obstacle = [xs + math.sin(tempryaw) * dis * 100, ys + math.cos(tempryaw) * dis * 100]
+                print(obstacle)
+                obstacleList.append(obstacle)
+            if self.acceptR:
+                tempyaw = self.yaw + 90
+                tempryaw = math.radians(tempyaw)
+                dis = self.current_package[2]
+                obstacle = [xs + math.sin(tempryaw) * dis * 100, ys + math.cos(tempryaw) * dis * 100]
+                print(obstacle)
+                obstacleList.append(obstacle)
+            self.setObstacle(obstacleList)
+
 
 def main():
-    pid = APID([0, -100, 0, 0])
-    pid.setObstacle([[0, -20]])
-    pid.realUpdate([0, 0, 0, 90])
-    print(pid.getVel())
-    pid.realUpdate([-20, -20, 0, 90])
+    pid = APID([0, 100, 0, 0])
+    pid.setObstacle([[0,20]])
+    pid.realUpdate([-10, 7, 0, 0])
     print(pid.getVel())
 
 

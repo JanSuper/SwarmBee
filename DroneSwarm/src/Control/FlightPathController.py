@@ -74,6 +74,8 @@ class FlightPathController:
                 pass
             print(f"(Drone #{drone.number}) Bluetooth values: {self.bluetooth.current_package}")
 
+        self.flight_interrupted = False
+        self.position_before_interruption = None
         self.interval = interval
         self.MAX_SPEED = max_speed
         self.obstacleList = [[200, 100]]
@@ -88,12 +90,32 @@ class FlightPathController:
 
     def update_flightpath(self, flightpath, method='Trapezoid'):
         self.flightpath = flightpath
-        next_target = self.initial_position + np.array(self.flightpath.pop(0))
+        next_target = self.current_position + np.array(self.flightpath.pop(0))
         match method:
             case 'Trapezoid':
                 self.trapezoid.set_target(next_target)
             case 'Proportional':
                 self.proportional.setDes(next_target)
+
+    def save_current_position(self):
+        current_position = self.current_position
+        if self.trapezoid is not None:
+            # Trapezoid controller is used
+            deltas = self.trapezoid.target - current_position
+        else:
+            # Proportional controller is used
+            deltas = np.array([self.proportional.desx, self.proportional.desy, self.proportional.desz,
+                               self.proportional.desyaw]) - current_position
+        self.flightpath.insert(0, deltas)
+        self.position_before_interruption = current_position
+
+    def restore_position_before_interruption(self):
+        if self.trapezoid is not None:
+            # Trapezoid controller is used
+            self.trapezoid.set_target(self.position_before_interruption)
+        else:
+            # Proportional controller is used
+            self.proportional.setDes(self.position_before_interruption)
 
     def fly_you_fool(self, method='Trapezoid'):
         match method:
@@ -113,29 +135,31 @@ class FlightPathController:
             if dt > self.interval:
                 u = [0, 0, 0, 0]  # Assume the drone is to be stationary; these values will only change if the drone
                 # has not reached its current target yet
-                if not self.completed_flightpath:
-                    calculate_u = False
-                    # Drone has not completed its flightpath yet
-                    if self.trapezoid.reached:
-                        # Drone has reached its current target
-                        if len(self.flightpath) > 0:
-                            # Flightpath contains at least one more target; update drone's target
-                            self.trapezoid.set_target(self.initial_position + np.array(self.flightpath.pop(0)))
-                            calculate_u = True
+                if not self.flight_interrupted:
+                    # Hand-tracking module is not active
+                    if not self.completed_flightpath:
+                        calculate_u = False
+                        # Drone has not completed its flightpath yet
+                        if self.trapezoid.reached:
+                            # Drone has reached its current target
+                            if len(self.flightpath) > 0:
+                                # Flightpath contains at least one more target; update drone's target
+                                self.trapezoid.set_target(self.current_position + np.array(self.flightpath.pop(0)))
+                                calculate_u = True
+                            else:
+                                # Flightpath has been completed
+                                self.completed_flightpath = True
                         else:
-                            # Flightpath has been completed
-                            self.completed_flightpath = True
-                    else:
-                        # Drone has not reached its current target
-                        calculate_u = True
-                    if calculate_u:
-                        # Update drone's current position
-                        self.update_drone_position()
-                        self.trapezoid.set_position(self.current_position)
-                        # Calculate velocities using the Trapezoid controller
-                        u = self.calculate_u(method='Trapezoid')
-                # Send velocities to drone
-                self.drone.send_rc(u)
+                            # Drone has not reached its current target
+                            calculate_u = True
+                        if calculate_u:
+                            # Update drone's current position
+                            self.update_drone_position()
+                            self.trapezoid.set_position(self.current_position)
+                            # Calculate velocities using the Trapezoid controller
+                            u = self.calculate_u(method='Trapezoid')
+                    # Send velocities to drone
+                    self.drone.send_rc(u)
                 previous_time = now
 
     # Function that flies the drone by using the Proportional controller
@@ -150,26 +174,28 @@ class FlightPathController:
             if dt > self.interval:
                 u = [0, 0, 0, 0]  # Assume the drone is to be stationary; these values will only change if the drone
                 # has not reached its current target yet
-                if not self.completed_flightpath:
-                    calculate_u = False
-                    # Drone has not completed its flightpath yet
-                    if self.proportional.reachedTarget:
-                        # Drone has reached its current target
-                        if len(self.flightpath) > 0:
-                            # Flightpath contains at least one more target; update drone's target
-                            self.proportional.setDes(self.initial_position + np.array(self.flightpath.pop(0)))
-                            calculate_u = True
+                if not self.flight_interrupted:
+                    # Hand-tracking module is not active
+                    if not self.completed_flightpath:
+                        calculate_u = False
+                        # Drone has not completed its flightpath yet
+                        if self.proportional.reachedTarget:
+                            # Drone has reached its current target
+                            if len(self.flightpath) > 0:
+                                # Flightpath contains at least one more target; update drone's target
+                                self.proportional.setDes(self.current_position + np.array(self.flightpath.pop(0)))
+                                calculate_u = True
+                            else:
+                                # Flightpath has been completed
+                                self.completed_flightpath = True
                         else:
-                            # Flightpath has been completed
-                            self.completed_flightpath = True
-                    else:
-                        # Drone has not reached its current target
-                        calculate_u = True
-                    if calculate_u:
-                        # Calculate velocities using the Proportional controller
-                        u = self.calculate_u(method='Proportional')
-                # Send velocities to drone
-                self.drone.send_rc(u)
+                            # Drone has not reached its current target
+                            calculate_u = True
+                        if calculate_u:
+                            # Calculate velocities using the Proportional controller
+                            u = self.calculate_u(method='Proportional')
+                    # Send velocities to drone
+                    self.drone.send_rc(u)
                 previous_time = now
 
     # Function that flies the drone in a circle
@@ -223,9 +249,11 @@ class FlightPathController:
         match method:
             case 'Trapezoid':
                 u = self.trapezoid.calculate()
+                self.findObstacles()
                 return self.avoid(u)
             case 'Proportional':
                 u = self.proportional.getVel()
+                self.findObstacles()
                 return self.avoid(u)
             case 'Circle':
                 return self.circle.calculate_angular_velocity()
@@ -241,6 +269,27 @@ class FlightPathController:
         pos[1] += y
 
         return pos
+
+    def findObstacles(self):
+        if self.bluetooth.acceptL or self.bluetooth.acceptR or self.bluetooth.acceptF:
+            xs = self.current_position[0]
+            ys = self.current_position[1]
+            self.obstacleList = []
+            if self.bluetooth.acceptL:
+                tempyaw = self.current_position[3] + 270
+                tempryaw = math.radians(tempyaw)
+                dis = self.bluetooth.current_package[0]
+                self.obstacleList.append([xs + math.sin(tempryaw) * dis * 100, ys + math.cos(tempryaw) * dis * 100])
+            if self.bluetooth.acceptF:
+                tempyaw = self.current_position[3]
+                tempryaw = math.radians(tempyaw)
+                dis = self.bluetooth.current_package[1]
+                self.obstacleList.append([xs + math.sin(tempryaw) * dis * 100, ys + math.cos(tempryaw) * dis * 100])
+            if self.bluetooth.acceptR:
+                tempyaw = self.current_position[3] + 90
+                tempryaw = math.radians(tempyaw)
+                dis = self.bluetooth.current_package[2]
+                self.obstacleList.append([xs + math.sin(tempryaw) * dis * 100, ys + math.cos(tempryaw) * dis * 100])
 
     def avoid(self, u, obstacle=None, method=2):
         match method:
@@ -265,19 +314,21 @@ class FlightPathController:
                     diffY = self.current_position[1] - pos[1]
                     dis = math.sqrt(diffX ** 2 + diffY ** 2)
                     rddAngle = math.atan2(-diffX, -diffY)
-                    x = u[0] * math.cos(-self.current_position[3]) - u[1] * math.sin(-self.current_position[3])
-                    y = u[0] * math.sin(-self.current_position[3]) + u[1] * math.cos(-self.current_position[3])
+                    x = u[0] * math.cos(-ry) - u[1] * math.sin(-ry)
+                    y = u[0] * math.sin(-ry) + u[1] * math.cos(-ry)
                     rtAngle = math.atan2(x, y)
                     if dis < 40:  # PANIC
                         print("PANIC")
                         if panic:
                             print("MULTIPLE PANIC")
-                            u[0] += diffX
-                            u[1] += diffY
+                            factor = (40-math.sqrt(diffX**2 + diffY**2))/math.sqrt(diffX**2 + diffY**2)
+                            u[0] += diffX*factor
+                            u[1] += diffY*factor
                         else:
                             print("FIRST PANIC")
                             panic = True
-                            u[0], u[1] = diffX, diffY
+                            factor = (40-math.sqrt(diffX**2 + diffY**2))/math.sqrt(diffX**2 + diffY**2)
+                            u[0], u[1] = diffX*factor, diffY*factor
                             print(u)
                     elif abs(rddAngle - rtAngle) >= .5 * math.pi:
                         print("flying in opposite direction so it's safe")
@@ -291,6 +342,9 @@ class FlightPathController:
                         u[0], u[1] = x, 0
                         x = u[0] * math.cos(-rAngle + ry) - u[1] * math.sin(-rAngle + ry)
                         y = u[0] * math.sin(-rAngle + ry) + u[1] * math.cos(-rAngle + ry)
+                        # changing the yaw with a P method so that the drone keeps looking at the middle of the circle
+                        # TODO CHANGE TRAPEZOID SO THAT INTERNAL VALUES KNOW ABOUT THIS ROTATION TO FACE THE OBSTACLE
+                        #u[0], u[1], u[3] = x, y, math.degrees(rddAngle - ry)
                         u[0], u[1] = x, y
                     else:
                         print("It's fine")
