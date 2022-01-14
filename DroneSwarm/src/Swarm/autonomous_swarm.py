@@ -236,7 +236,7 @@ force_land_thread.start()
 # Control parameters
 method = "Proportional"  # Trapezoid, Proportional, Circle
 no_drones = 1
-leader_bluetooth_address = '9C:9C:1F:E1:B0:62'  # EDAD = 84:CC:A8:2F:E9:32, EDB0 = 84:CC:A8:2E:9C:B6,
+leader_bluetooth_address = '84:CC:A8:2E:9C:B6'  # EDAD = 84:CC:A8:2F:E9:32, EDB0 = 84:CC:A8:2E:9C:B6,
 # 60FF = 9C:9C:1F:E1:B0:62
 leader_initial_flightpath = []
 follower_offsets = [[-50, -50, 0, 0], [-50, 50, 0, 0]]
@@ -299,10 +299,9 @@ print("Setup done")
 #             break
 # print(f"Swarm is in formation")
 
-# Start hand-tracking module
-tracking_thread = Thread(target=detect_gesture, args=(drones,))
-tracking_thread.daemon = True
-tracking_thread.start()
+# Start hand-tracking module (not working)
+# tracking_process = Process(target=detect_gesture, args=(drones,))
+# tracking_process.start()
 
 # Start proper flight
 # print(f"Start flight")

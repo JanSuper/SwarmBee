@@ -3,6 +3,7 @@ import mediapipe as mp
 import time
 import math
 import imutils
+import socket
 
 from queue import Queue
 
@@ -264,6 +265,7 @@ class handDetector():
 
 
 def send(drones, command):
+    print(f"Sending {command} to drones")
     for drone in drones:
         drone.sendto(command.encode(), ('192.168.10.1', 8889))
 
@@ -305,8 +307,8 @@ def interrupt_flight(drones):
 
 
 def execute_gesture(drones, gesture):
-    if not drones[0].controller.flight_interrupted:
-        interrupt_flight(drones)
+    # if not drones[0].controller.flight_interrupted:
+    #     interrupt_flight(drones)
 
     velocity = 15
     if gesture == "go left":
@@ -352,7 +354,26 @@ def detect_gesture(drones):
                 execute_gesture(drones, current_gesture)
             previous_gesture = current_gesture
         else:
-            if drones[0].controller.flight_interrupted:
-                continue_flight(drones)
+            send(drones, "rc 0 0 0 0")
+        #     if drones[0].controller.flight_interrupted:
+        #         continue_flight(drones)
         cv2.imshow("Image", img)
         cv2.waitKey(1)
+
+
+drones = []
+
+drone1 = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+drone1.setsockopt(socket.SOL_SOCKET, 25, 'wlxd03745f79670'.encode())
+drone1.bind(('', 9000))
+drones.append(drone1)
+
+drone2 = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+drone2.setsockopt(socket.SOL_SOCKET, 25, 'wlxd0374572e205'.encode())
+drone2.bind(('', 9000))
+drones.append(drone2)
+
+send(drones, "command")
+send(drones, "takeoff")
+
+detect_gesture(drones)
