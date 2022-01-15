@@ -339,7 +339,10 @@ class FlightPathController:
                     x = u[0] * math.cos(-ry) - u[1] * math.sin(-ry)
                     y = u[0] * math.sin(-ry) + u[1] * math.cos(-ry)
                     rtAngle = math.atan2(x, y)
-                    if dis < 40:  # PANIC
+                    if abs(rddAngle - rtAngle) >= .5 * math.pi:
+                        print("flying in opposite direction so it's safe")
+                        pass
+                    elif dis < 40:  # PANIC
                         print("PANIC")
                         if panic:
                             print("MULTIPLE PANIC")
@@ -354,9 +357,6 @@ class FlightPathController:
                             y = diffX * math.sin(ry) + diffY * math.cos(ry)
                             u[0], u[1] = x*factor, -y*factor
                             print(u)
-                    elif abs(rddAngle - rtAngle) >= .5 * math.pi:
-                        print("flying in opposite direction so it's safe")
-                        pass
                     elif 40 <= dis <= 80 and not panic:  # curve around
                         print("Curvy")
                         rAngle = math.atan2(diffX, diffY)

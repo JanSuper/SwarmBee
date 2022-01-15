@@ -86,8 +86,11 @@ class APID():
         pre = [self.desx - self.x, self.desy - self.y]
         x = pre[0] * math.cos(self.ryaw) - pre[1] * math.sin(self.ryaw)
         y = pre[0] * math.sin(self.ryaw) + pre[1] * math.cos(self.ryaw)
-        yawVel = (-(self.desyaw - self.yaw)) / math.sqrt(x ** 2 + y ** 2)
-        trans = [x, -y, self.desz - self.z, yawVel]
+        if min(abs(self.desyaw - self.yaw), (360 - abs(self.desyaw - self.yaw))) == abs(self.desyaw - self.yaw):
+            yawVel = ((self.desyaw - self.yaw)) / math.sqrt(x ** 2 + y ** 2)
+        else:
+            yawVel = -(360 - (self.desyaw - self.yaw)) / math.sqrt(x ** 2 + y ** 2)
+        trans = [x, y, self.desz - self.z, yawVel]
         # trans = [pre[0] * math.cos(self.ryaw) - pre[1] * math.sin(self.ryaw), pre[0] * math.sin(self.ryaw)
         #          + pre[1] * math.cos(self.ryaw), self.desz - self.z, -(self.desyaw - self.yaw)]
         # print(trans)
@@ -173,9 +176,9 @@ class APID():
 
 
 def main():
-    pid = APID([0, 100, 0, 0])
-    pid.setObstacle([[0,20]])
-    pid.realUpdate([0, 10, 0, 90])
+    pid = APID([100, 0, 0, 0])
+    #pid.setObstacle([[0,20]])
+    pid.realUpdate([0, 0, 0, 90])
     print(pid.getVel())
 
 
