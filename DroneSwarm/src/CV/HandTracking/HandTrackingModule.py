@@ -5,8 +5,6 @@ import math
 import imutils
 import socket
 
-from queue import Queue
-
 
 class handDetector():
 
@@ -22,10 +20,6 @@ class handDetector():
                                         self.trackCon)
         self.tipIds = [4, 8, 12, 16, 20]
         self.fingers = []
-        self.rectSizes = Queue(maxsize=100)
-        self.max_width, self.min_width, self.max_height, self.min_height = 0, 1000, 0, 1000
-        self.spinCommand = False
-        self.pointUp = False
 
     def findHands(self, img, draw=True):
         imgRGB = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
@@ -55,14 +49,6 @@ class handDetector():
             xmin, xmax = min(xList), max(xList)
             ymin, ymax = min(yList), max(yList)
             bbox = xmin, ymin, xmax, ymax
-            # print("bbox x width: " + str(xmax-xmin) + "  y length: " + str(ymax-ymin))
-            if self.pointUp is True:  # only save rect sizes if finger pointing up
-                self.modifyRecSizeQueue(xmax - xmin, ymax - ymin)
-            else:  # clear queue if other gestures shown and clear max min values
-                self.rectSizes = Queue(maxsize=100)
-                self.max_width, self.min_width, self.max_height, self.min_height = 0, 1000, 0, 1000
-                # print("Queue cleared")
-                # print(list(self.rectSizes.queue))
             if draw:
                 cv2.rectangle(img, (bbox[0] - 20, bbox[1] - 20),
                               (bbox[2] + 20, bbox[3] + 20), (0, 255, 0), 2)
@@ -181,7 +167,6 @@ class handDetector():
 
         if self.fingers[0] == 0:  # hand pointing up
             if f == [1, 1, 1, 1, 1] or f == [2, 1, 1, 1, 1]:
-                # TODO make so that only "stop" command stops the spin tracking of the drone(s)
                 return "stop"
             elif f == [1, 0, 0, 0, 1]:
                 return "go forward"
@@ -231,45 +216,8 @@ class handDetector():
         length = math.hypot(x2 - x1, y2 - y1)
         return length, img, [x1, y1, x2, y2, cx, cy]
 
-    def modifyRecSizeQueue(self, width, height):
-        # if finger is pointing up
-        # save rectangle sizes around hand in a queue
-        # if differences are big enough then circular movement of hand is detected
-        # (circular movement is done parallel to ground, i.e. toward camera=away from body; away from cam=toward body)
-        # active spin command (Circle.py) then
-        if width > self.max_width:
-            self.max_width = width
-        if width < self.min_width:
-            self.min_width = width
-        if height > self.max_height:
-            self.max_height = height
-        if height < self.min_height:
-            self.min_height = height
-        if self.rectSizes.full():
-            self.rectSizes.get()
-        self.rectSizes.put([width, height])
-        diff_width = self.max_width - self.min_width
-        diff_height = self.max_height - self.min_width
-        # print("Diff width: " + str(diff_width))
-        # print("Diff height: " + str(diff_height))
-        # TODO need to define accurate tresholds for activation (do experiments)
-        if diff_width > 75 and diff_height > 200:  # activate spin command and clear queue and max min values
-            # print("Activate spin command")
-            self.spinCommand = True
-            self.rectSizes = Queue(maxsize=100)
-            self.max_width, self.min_width, self.max_height, self.min_height = 0, 1000, 0, 1000
-            # TODO call actual spin command (Circle.py I think or sth)
-        # print("Queue: ")
-        # print(list(self.rectSizes.queue))
-        # print(self.rectSizes.qsize())
 
-
-def send(drones, command):
-    print(f"Sending {command} to drones")
-    for drone in drones:
-        drone.sendto(command.encode(), ('192.168.10.1', 8889))
-
-
+# Function that continues the swarm's regular flight (hand-tracking module stops takeover)
 def continue_flight(drones):
     send(drones, "rc 0 0 0 0")
 
@@ -286,6 +234,7 @@ def continue_flight(drones):
         drone.controller.flight_interrupted = False
 
 
+# Function that interrupts the swarm's regular flight (hand-tracking module takes over)
 def interrupt_flight(drones):
     for drone in drones:
         drone.controller.flight_interrupted = True
@@ -306,11 +255,18 @@ def interrupt_flight(drones):
         drone.controller.save_current_position()
 
 
-def execute_gesture(drones, gesture):
-    # if not drones[0].controller.flight_interrupted:
-    #     interrupt_flight(drones)
+# Function that sends the same command to every connected drone
+def send(drones, command):
+    print(f"Sending {command} to drone(s)")
+    for drone in drones:
+        drone.sendto(command.encode(), ('192.168.10.1', 8889))
 
+
+# Function that makes all drones execute an action according to the detected gesture
+def execute_gesture(drones, gesture):
     velocity = 15
+
+    # Determine action to execute
     if gesture == "go left":
         send(drones, f"rc -{velocity} 0 0 0")
     elif gesture == "go right":
@@ -333,47 +289,77 @@ def execute_gesture(drones, gesture):
         send(drones, f"rc 0 0 0 0")
 
 
-def detect_gesture(drones):
+def detect_gesture(drones, stationary):
+    # Fetch camera stream and create hand detector
     cap = cv2.VideoCapture(0)
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
     detector = handDetector()
+
+    # Detect gestures in loop
     previous_gesture = None
+    stationary = stationary
     while True:
+        # Detect hands in current image
         success, img = cap.read()
         img = imutils.resize(img, height=480)
         img = detector.findHands(img)
         lmList, bbox = detector.findPosition(img, draw=True)
+
         if len(lmList) != 0:
-            fingers = detector.fingersUp()
-            # print(fingers)
+            # A hand has been detected; detect fingers
+            detector.fingersUp()
+
+            # Find gesture
             current_gesture = detector.gestureFinder()
             cv2.putText(img, f'{current_gesture}', (bbox[0], bbox[3] + 60), cv2.FONT_HERSHEY_COMPLEX,
                         1, (0, 0, 255), 3)
+
+            if swarm_integration:
+                if not drones[0].controller.flight_interrupted:
+                    # Hand-tracking module takes over swarm; interrupt swarm's regular flight
+                    interrupt_flight(drones)
+
+            # Execute the found gesture
             if current_gesture != previous_gesture:
+                stationary = False
                 execute_gesture(drones, current_gesture)
             previous_gesture = current_gesture
         else:
-            send(drones, "rc 0 0 0 0")
-        #     if drones[0].controller.flight_interrupted:
-        #         continue_flight(drones)
+            # A hand has not been detected
+            if swarm_integration:
+                if drones[0].controller.flight_interrupted:
+                    # Hand-tracking module is done (for now); continue the swarm's regular flight
+                    continue_flight(drones)
+            else:
+                if not stationary:
+                    # Make drone(s) stationary
+                    send(drones, "rc 0 0 0 0")
+                    stationary = True
         cv2.imshow("Image", img)
         cv2.waitKey(1)
 
 
-drones = []
+# Control parameters
+swarm_integration = False
+no_drones = 2
 
-drone1 = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-drone1.setsockopt(socket.SOL_SOCKET, 25, 'wlxd03745f79670'.encode())
-drone1.bind(('', 9000))
-drones.append(drone1)
+if not swarm_integration:
+    # Keep only the relevant interface name(s)
+    interface_names = ['wlxd03745f79670', 'wlxd0374572e205', 'wlx6c5ab04a495e']
+    interface_names = interface_names[:no_drones]
 
-drone2 = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-drone2.setsockopt(socket.SOL_SOCKET, 25, 'wlxd0374572e205'.encode())
-drone2.bind(('', 9000))
-drones.append(drone2)
+    # Connect to drone(s)
+    drones = []
+    for interface_name in interface_names:
+        drone = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        drone.setsockopt(socket.SOL_SOCKET, 25, interface_name.encode())
+        drone.bind(('', 9000))
+        drones.append(drone)
 
-send(drones, "command")
-send(drones, "takeoff")
+    # Perform automatic takeoff
+    send(drones, "command")
+    send(drones, "takeoff")
 
-detect_gesture(drones)
+    # Start hand-tracking module
+    detect_gesture(drones, True)
