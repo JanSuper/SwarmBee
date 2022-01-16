@@ -289,7 +289,7 @@ def execute_gesture(drones, gesture):
         send(drones, f"rc 0 0 0 0")
 
 
-def detect_gesture(drones, stationary):
+def detect_gesture(drones, swarm_integration, stationary):
     # Fetch camera stream and create hand detector
     cap = cv2.VideoCapture(0)
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
@@ -298,6 +298,7 @@ def detect_gesture(drones, stationary):
 
     # Detect gestures in loop
     previous_gesture = None
+    swarm_integration = swarm_integration
     stationary = stationary
     while True:
         # Detect hands in current image
@@ -361,5 +362,10 @@ if not swarm_integration:
     send(drones, "command")
     send(drones, "takeoff")
 
+    # Allow for drone(s) to stabilise after takeoff
+    takeoff_time = time.time()
+    while time.time() - takeoff_time < 5:
+        pass
+
     # Start hand-tracking module
-    detect_gesture(drones, True)
+    detect_gesture(drones, swarm_integration, True)
