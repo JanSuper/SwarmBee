@@ -1,3 +1,4 @@
+import threading
 import cv2
 import mediapipe as mp
 import time
@@ -289,6 +290,16 @@ def execute_gesture(drones, gesture):
         send(drones, f"rc 0 0 0 0")
 
 
+def send_dummy_command(drones, dummy_command):
+    previous_time = time.time()
+    interval = 5
+    while True:
+        current_time = time.time()
+        if current_time - previous_time > interval:
+            send(drones, dummy_command)
+            previous_time = current_time
+
+
 def detect_gesture(drones, swarm_integration, stationary):
     # Fetch camera stream and create hand detector
     cap = cv2.VideoCapture(0)
@@ -296,10 +307,15 @@ def detect_gesture(drones, swarm_integration, stationary):
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
     detector = handDetector()
 
+    swarm_integration = swarm_integration
+    if not swarm_integration:
+        dummy_thread = threading.Thread(target=send_dummy_command, args=(drones, "battery?"))
+        dummy_thread.daemon = True
+        dummy_thread.start()
+    stationary = stationary
+
     # Detect gestures in loop
     previous_gesture = None
-    swarm_integration = swarm_integration
-    stationary = stationary
     while True:
         # Detect hands in current image
         success, img = cap.read()
