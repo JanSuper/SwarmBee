@@ -20,10 +20,10 @@ class Drone:
         receiver, sender = Pipe()
         self.sender = sender
         self.aruco = Process(target=detect, args=(receiver, udp_port, number,))
+        self.bt_address = bt_address
         self.busy = False
         self.error = False
         self.controller = None
-        self.bt_address = bt_address
 
     def create_controller(self, initial_position, method):
         self.controller = FlightPathController(self, initial_position, method=method)
@@ -44,6 +44,7 @@ class Drone:
             print("Error sending \"" + message + "\" to drone #" + str(self.number) + ": " + str(e))
 
     def send_rc(self, u):
+        # Scale u
         u = np.array(u)
         max_vel = 30
         quads = 0
@@ -52,10 +53,10 @@ class Drone:
         length_u = math.sqrt(quads)
         if length_u > 30:
             u = u * max_vel / length_u
-        # tmp_u = []
-        # for vel in u:
-        #     tmp_u.append(max(-30, min(30, vel)))
-        # u = tmp_u
+
+        # Round u to the nearest integers
+        u = np.rint(u).astype(int)
+
         command = f"rc {u[0]} {u[1]} {u[2]} {u[3]}"
         print(f"Drone #{self.number} remote control: " + command)
         try:

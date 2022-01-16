@@ -2,6 +2,7 @@
 # Source: https://github.com/dbaldwin/DroneBlocks-Tello-Python/blob/master/lesson3-udp-send-receive/UDPSendReceive.py
 
 import time
+from multiprocessing import Process
 import numpy as np
 from threading import Thread
 
@@ -79,7 +80,7 @@ def stop_program():
 
 def setup_drone(drone):
     # Perform takeoff
-    messages = ["command", "battery?", "streamoff", "streamon", "takeoff"]
+    messages = ["command", "streamoff", "streamon", "takeoff"]
     for message in messages:
         print(f"Sending message to drone #{drone.number}: {message}")
         drone.send(message)
@@ -175,7 +176,7 @@ def start_flying():
 
 def monitor():
     previous_time = time.time()
-    follower_flightpath_update_interval = 0.1
+    follower_flightpath_update_interval = 0.5
 
     while True:
         if leader_drone.controller.completed_flightpath:
@@ -200,9 +201,10 @@ def monitor():
                 # Add a new target to each follower's flightpath
                 leader_current_position = leader_drone.controller.current_position
                 for follower_drone in drones[1:]:
-                    new_follower_target = leader_current_position + follower_drone.controller.offset
-                    follower_drone.controller.flightpath.append(new_follower_target.tolist())
-                    follower_drone.controller.completed_flightpath = False
+                    if not follower_drone.controller.flight_interrupted:
+                        new_follower_target = leader_current_position + follower_drone.controller.offset
+                        follower_drone.controller.flightpath.append(new_follower_target.tolist())
+                        follower_drone.controller.completed_flightpath = False
 
                 previous_time = current_time
         check_error()
@@ -228,11 +230,6 @@ def send_dummy_command():
             previous_time = current_time
 
 
-# Setup forced landing
-force_land_thread = Thread(target=force_land)
-force_land_thread.daemon = True
-force_land_thread.start()
-
 # Control parameters
 method = "Proportional"  # Trapezoid, Proportional, Circle
 no_drones = 1
@@ -240,6 +237,11 @@ leader_bluetooth_address = '84:CC:A8:2F:E9:32'  # EDAD = 84:CC:A8:2F:E9:32, EDB0
 # 60FF = 9C:9C:1F:E1:B0:62
 leader_initial_flightpath = [[200, 0, 0, 0]]
 follower_offsets = [[-50, -50, 0, 0], [-50, 50, 0, 0]]
+
+# Setup forced landing
+force_land_thread = Thread(target=force_land)
+force_land_thread.daemon = True
+force_land_thread.start()
 
 # WARNING: Make sure leader drone connects to interface_names[0]
 udp_ports = [11111, 11113, 11115]
@@ -299,13 +301,11 @@ while not in_formation:
             break
 print(f"Swarm is in formation")
 
-# Start hand-tracking module (not working)
-# tracking_process = Process(target=detect_gesture, args=(drones,))
+# Start hand-tracking module (currently not working)
+# tracking_process = Process(target=detect_gesture, args=(drones, True, False))
 # tracking_process.start()
 
 # Start proper flight
 print(f"Start flight")
 leader_drone.controller.completed_flightpath = False
 monitor()
-while True:
-    pass

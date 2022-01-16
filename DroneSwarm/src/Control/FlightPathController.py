@@ -1,8 +1,6 @@
 import time
 import numpy as np
 import math
-import pandas as pd
-import datetime
 
 from DroneSwarm.src.Control.Trapezoid import Trapezoid
 from DroneSwarm.src.Utilities.tello_bluetooth_receiver import BackgroundBluetoothSensorRead
@@ -45,7 +43,7 @@ def check_for_interval(list1, lower, upper):
 
 class FlightPathController:
 
-    def __init__(self, drone, initial_position, method='Trapezoid', bt_threshold=0.20, interval=0.5, max_speed=40):
+    def __init__(self, drone, initial_position, method='Trapezoid', bt_threshold=0.20, interval=0.1, max_speed=40):
         self.drone = drone
         self.flightpath = drone.flightpath
         self.need_new_flightpath = False
@@ -75,8 +73,6 @@ class FlightPathController:
 
         self.current_position = initial_position
         self.need_new_position = False
-        # self.pos, self.tar, self.tim, self.control, self.sensor, self.bt = [], [], [], [], [], []
-        # self.df = pd.DataFrame([self.tim, self.pos, self.tar, self.sensor, self.control, self.bt]).T
 
         # Initialize Bluetooth
         # if drone.bt_address is not None:
@@ -84,9 +80,9 @@ class FlightPathController:
         #     self.bt_threshold = bt_threshold
         #     self.bluetooth.start()
         #     while self.bluetooth.current_package == [0, 0, 0]:
-        #         print(f"(Drone #{drone.number}) Bluetooth values: {self.bluetooth.current_package}")
+        #         # print(f"(Drone #{drone.number}) Bluetooth values: {self.bluetooth.current_package}")
         #         pass
-        #     print(f"(Drone #{drone.number}) Bluetooth values: {self.bluetooth.current_package}")
+        #     # print(f"(Drone #{drone.number}) Bluetooth values: {self.bluetooth.current_package}")
 
         self.flight_interrupted = False
         self.position_before_interruption = None
@@ -176,20 +172,11 @@ class FlightPathController:
                     # Send velocities to drone
                     self.drone.send_rc(u)
                 previous_time = now
-                # self.pos.append(self.current_position)
-                # self.tar.append(trapezoid.target)
-                # self.tim.append(now - query_time)
-                # self.control.append(u)
-                # self.sensor.append(y)
-                # self.bt.append(bluetooth.current_package)
 
     # Function that flies the drone by using the Proportional controller
     def fly_proportional(self):
         previous_time = time.time()
         while True:
-            self.update_drone_position()
-            self.proportional.realUpdate(self.current_position)
-
             now = time.time()
             dt = now - previous_time
             if dt > self.interval:
@@ -213,6 +200,9 @@ class FlightPathController:
                             # Drone has not reached its current target
                             calculate_u = True
                         if calculate_u:
+                            # Update drone's current position
+                            self.update_drone_position()
+                            self.proportional.realUpdate(self.current_position)
                             # Calculate velocities using the Proportional controller
                             u = self.calculate_u(method='Proportional')
                     # Send velocities to drone
@@ -221,7 +211,7 @@ class FlightPathController:
 
     # Function that flies the drone in a circle
     # TODO: add leader-follower logic
-    def fly_circle(self, radius=100, speed=20, clock_wise=True, avoid=False):
+    def fly_circle(self):
         previous_time = time.time()
         while True:
             now = time.time()
@@ -270,11 +260,15 @@ class FlightPathController:
         match method:
             case 'Trapezoid':
                 u = self.trapezoid.calculate()
-                # self.findObstacles()
-                return self.avoid(u)
+                # if self.bluetooth is not None:
+                #     self.findObstacles()
+                u = self.avoid(u)
+                u[2], u[3] = 0, 0  # TODO: remove once Trapezoid is more stable
+                return u
             case 'Proportional':
                 u = self.proportional.getVel()
-                # self.findObstacles()
+                # if self.bluetooth is not None:
+                #     self.findObstacles()
                 return self.avoid(u)
             case 'Circle':
                 return self.circle.calculate_angular_velocity()

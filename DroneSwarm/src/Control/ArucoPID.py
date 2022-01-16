@@ -43,7 +43,7 @@ class APID():
         self.z = pos[2]
         self.yaw = pos[3]
         self.ryaw = math.radians(pos[3])
-        # print(f"(Proportional) New position = {pos}")
+        print(f"(Proportional) New position = {pos}")
         self.areWeThereYet()
 
     def setDes(self, x, y, z, yaw):
