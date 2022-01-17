@@ -5,17 +5,29 @@ import time
 from multiprocessing import Process, Pipe
 import numpy as np
 from threading import Thread
+import pandas as pd
 
 from DroneSwarm.src.Swarm.drone import Drone
 import DroneSwarm.src.Utilities.KeyPressModule as KeyPress
 # from DroneSwarm.src.CV.HandTracking.HandTrackingModule import detect_gesture
 from DroneSwarm.src.CV.tello_pose_experimentation.ArucoLoc import ArucoProcess
 
+current_target = [0, 0, 0, 0]
+positions = []
+targets = []
+
+
+def export_data():
+    df = pd.DataFrame([positions, targets]).T
+    df.columns = ['position', 'target']
+    df.to_csv('FlightData.csv')
+
 
 def force_land():
     KeyPress.init()
     while True:
         if KeyPress.get_key("s"):
+            export_data()
             print("Soft landing initialized")
             # Make all drones stationary
             make_drones_stationary()
@@ -141,6 +153,8 @@ def fetch_info_from_aruco():
 
                 if drone.controller.need_new_position:
                     print(f"Drone #{drone.number}: new position {current_position}")
+                    positions.append(current_position.tolist())
+                    targets.append(current_target)
                     drone.controller.current_position = current_position
                     drone.controller.need_new_position = False
 
