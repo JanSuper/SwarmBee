@@ -4,7 +4,7 @@ import numpy as np
 from multiprocessing import Pipe, Process
 
 from DroneSwarm.src.Control.FlightPathController import FlightPathController
-from DroneSwarm.src.CV.tello_pose_experimentation.ArucoLoc import detect
+from DroneSwarm.src.CV.tello_pose_experimentation.ArucoLoc import ArucoProcess
 
 
 class Drone:
@@ -19,7 +19,8 @@ class Drone:
         self.socket.bind(('', 9000))
         receiver, sender = Pipe()
         self.sender = sender
-        self.aruco = Process(target=detect, args=(receiver, udp_port, number,))
+        self.udp_port = udp_port
+        self.aruco = ArucoProcess(receiver, udp_port, number)
         self.bt_address = bt_address
         self.busy = False
         self.error = False
@@ -28,12 +29,12 @@ class Drone:
     def create_controller(self, initial_position, method):
         self.controller = FlightPathController(self, initial_position, method=method)
 
-    def send_dummy_command(self, dummy_command):
+    def send_no_busy(self, message):
         try:
-            self.socket.sendto(dummy_command.encode(), ('192.168.10.1', 8889))
+            self.socket.sendto(message.encode(), ('192.168.10.1', 8889))
         except ValueError as e:
             self.error = True
-            print("Error sending dummy command to drone #" + str(self.number) + ": " + str(e))
+            print("Error sending \"" + message + "\" to drone #" + str(self.number) + ": " + str(e))
 
     def send(self, message):
         try:

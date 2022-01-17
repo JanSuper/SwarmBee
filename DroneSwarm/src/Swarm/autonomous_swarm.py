@@ -1,14 +1,15 @@
 # This file uses DroneBlocks' UDP send-receiver example code as a base
 # Source: https://github.com/dbaldwin/DroneBlocks-Tello-Python/blob/master/lesson3-udp-send-receive/UDPSendReceive.py
-
+import math
 import time
-from multiprocessing import Process
+from multiprocessing import Process, Pipe
 import numpy as np
 from threading import Thread
 
 from DroneSwarm.src.Swarm.drone import Drone
 import DroneSwarm.src.Utilities.KeyPressModule as KeyPress
 # from DroneSwarm.src.CV.HandTracking.HandTrackingModule import detect_gesture
+from DroneSwarm.src.CV.tello_pose_experimentation.ArucoLoc import ArucoProcess
 
 
 def force_land():
@@ -96,6 +97,8 @@ def setup_drone(drone):
         initial_position = drone.sender.recv()
     initial_position = np.rint(np.array(initial_position[:4])).astype(int)
     print(f"Drone #{drone.number}: initial position {initial_position}")
+    drone.aruco.shutdown()
+    drone.send_no_busy("streamoff")
 
     if drone.number > 1:
         # For follower drones only; create initial flight path
@@ -132,6 +135,7 @@ def fetch_info_from_aruco():
                 # print(f"(ArUco) Drone #{drone.number}: current position = {current_position}")
 
                 if drone.controller.need_new_position:
+                    print(f"Drone #{drone.number}: new position {current_position}")
                     drone.controller.current_position = current_position
                     drone.controller.need_new_position = False
 
@@ -211,8 +215,19 @@ def monitor():
                 leader_current_position = leader_drone.controller.current_position
                 for follower_drone in drones[1:]:
                     if not follower_drone.controller.flight_interrupted:
+                        follower_offset = follower_drone.controller.offset
+                        leader_velocity = leader_drone.controller.last_velocity
+                        vel_angle = math.atan2(leader_velocity[0], leader_velocity[1])
+
+                        follower_offset_x = follower_offset[0] * math.cos(vel_angle) - follower_offset[1] * math.sin(
+                            vel_angle)
+                        follower_offset_y = follower_offset[0] * math.sin(vel_angle) + follower_offset[1] * math.cos(
+                            vel_angle)
+                        follower_offset[0], follower_offset[1] = follower_offset_x, follower_offset_y
+
                         new_follower_target = leader_current_position + follower_drone.controller.offset
-                        follower_drone.controller.flightpath.append(new_follower_target.tolist())
+                        follower_drone.controller.flightpath.append(new_follower_target -
+                                                                    follower_drone.controller.current_position)
                         follower_drone.controller.completed_flightpath = False
 
                 previous_time = current_time
@@ -235,7 +250,7 @@ def send_dummy_command():
 
                 if send_dummy:
                     # print(f"Drone #{drone.number}: sending dummy command \"{dummy_command}\"")
-                    drone.send_dummy_command(dummy_command)
+                    drone.send_no_busy(dummy_command)
             previous_time = current_time
 
 
@@ -244,8 +259,8 @@ method = "Proportional"  # Trapezoid, Proportional, Circle
 no_drones = 2
 leader_bluetooth_address = '84:CC:A8:2F:E9:32'  # EDAD = 84:CC:A8:2F:E9:32, EDB0 = 84:CC:A8:2E:9C:B6,
 # 60FF = 9C:9C:1F:E1:B0:62
-leader_initial_flightpath = []  # [200, 0, 0, 0], [0, 150, 0, 0], [-200, 0, 0, 0], [0, -150, 0, 0]
-follower_offsets = [[-50, 0, 0, 0]]
+leader_initial_flightpath = [[100, 0, 0, 0]]  # [200, 0, 0, 0], [0, 150, 0, 0], [-200, 0, 0, 0], [0, -150, 0, 0]
+follower_offsets = [[-100, 0, 0, 0]]
 
 # Setup forced landing
 force_land_thread = Thread(target=force_land)
@@ -290,30 +305,43 @@ while drone_number <= no_drones:
 for follower_drone in drones[1:]:
     setup_drone(follower_drone)
 
+setup_done = True
+print("Setup done")
+
+# Restart ArUco
+for drone in drones:
+    drone.send_no_busy("streamon")
+    receiver, sender = Pipe()
+    drone.sender = sender
+    drone.aruco = ArucoProcess(receiver, drone.udp_port, drone.number)
+
+for drone in drones:
+    drone.aruco.start()
+    new_position = None
+    while new_position is None:
+        new_position = drone.sender.recv()
+
 position_thread = Thread(target=fetch_info_from_aruco)
 position_thread.daemon = True
 position_thread.start()
 
-setup_done = True
-print("Setup done")
-
 # Get followers into formation
-# leader_drone.controller.completed_flightpath = True
-# start_flying()
-# in_formation = False
-# while not in_formation:
-#     in_formation = True
-#     for follower_drone in drones[1:]:
-#         if not follower_drone.controller.completed_flightpath:
-#             in_formation = False
-#             break
-# print(f"Swarm is in formation")
+leader_drone.controller.completed_flightpath = True
+start_flying()
+in_formation = False
+while not in_formation:
+    in_formation = True
+    for follower_drone in drones[1:]:
+        if not follower_drone.controller.completed_flightpath:
+            in_formation = False
+            break
+print(f"Swarm is in formation")
 
 # Start hand-tracking module (currently not working)
 # tracking_process = Process(target=detect_gesture, args=(drones, True, False))
 # tracking_process.start()
 
 # Start proper flight
-# print(f"Start flight")
-# leader_drone.controller.completed_flightpath = False
-# monitor()
+print(f"Start flight")
+leader_drone.controller.completed_flightpath = False
+monitor()

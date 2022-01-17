@@ -61,6 +61,7 @@ class FlightPathController:
             initial_target = self.initial_position
             self.completed_flightpath = True
 
+        print(f"Drone #{self.drone.number}: new target {initial_target}")
         match method:
             case 'Trapezoid':
                 self.trapezoid = Trapezoid()
@@ -89,6 +90,7 @@ class FlightPathController:
         self.interval = interval
         self.MAX_SPEED = max_speed
         self.obstacleList = []  # [150, 50], [150, 200]
+        self.last_velocity = None
 
     # Function that checks whether it is safe for the drone to perform takeoff
     def check_safe_for_takeoff(self):
@@ -101,6 +103,7 @@ class FlightPathController:
     def update_flightpath(self, flightpath, method='Trapezoid'):
         self.flightpath = flightpath
         next_target = self.current_position + np.array(self.flightpath.pop(0))
+        print(f"Drone #{self.drone.number}: new target {next_target}")
         match method:
             case 'Trapezoid':
                 self.trapezoid.set_target(next_target)
@@ -155,7 +158,9 @@ class FlightPathController:
                             # Drone has reached its current target
                             if len(self.flightpath) > 0:
                                 # Flightpath contains at least one more target; update drone's target
-                                self.trapezoid.set_target(self.current_position + np.array(self.flightpath.pop(0)))
+                                new_target = self.current_position + np.array(self.flightpath.pop(0))
+                                print(f"Drone #{self.drone.number}: new target {new_target}")
+                                self.trapezoid.set_target(new_target)
                                 calculate_u = True
                             else:
                                 # Flightpath has been completed
@@ -169,6 +174,7 @@ class FlightPathController:
                             self.trapezoid.set_position(self.current_position)
                             # Calculate velocities using the Trapezoid controller
                             u = self.calculate_u(method='Trapezoid')
+                            self.last_velocity = u
                     # Send velocities to drone
                     self.drone.send_rc(u)
                 previous_time = now
@@ -191,7 +197,9 @@ class FlightPathController:
                             # Drone has reached its current target
                             if len(self.flightpath) > 0:
                                 # Flightpath contains at least one more target; update drone's target
-                                self.proportional.setDes(self.current_position + np.array(self.flightpath.pop(0)))
+                                new_target = self.current_position + np.array(self.flightpath.pop(0))
+                                print(f"Drone #{self.drone.number}: new target {new_target}")
+                                self.proportional.setDes(new_target)
                                 calculate_u = True
                             else:
                                 # Flightpath has been completed
@@ -205,6 +213,7 @@ class FlightPathController:
                             self.proportional.realUpdate(self.current_position)
                             # Calculate velocities using the Proportional controller
                             u = self.calculate_u(method='Proportional')
+                            self.last_velocity = u
                     # Send velocities to drone
                     self.drone.send_rc(u)
                 previous_time = now

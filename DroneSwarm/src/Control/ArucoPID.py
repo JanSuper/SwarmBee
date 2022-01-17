@@ -5,7 +5,7 @@ import numpy as np
 class APID():
 
     def __init__(self, des, ryaw=0):
-        print(f"(Proportional) New target = {des}")
+        # print(f"(Proportional) New target = {des}")
 
         self.x = 0
         self.y = 0
@@ -35,7 +35,7 @@ class APID():
         self.z = z
         self.yaw = yaw
         self.ryaw = math.radians(yaw)
-        print(f"(Proportional) New position = [{x}, {y}, {z}, {yaw}]")
+        # print(f"(Proportional) New position = [{x}, {y}, {z}, {yaw}]")
         self.areWeThereYet()
 
     def realUpdate(self, pos):
@@ -44,7 +44,7 @@ class APID():
         self.z = pos[2]
         self.yaw = pos[3]
         self.ryaw = math.radians(pos[3])
-        print(f"(Proportional) New position = {pos}")
+        # print(f"(Proportional) New position = {pos}")
         self.areWeThereYet()
 
     def setDes(self, x, y, z, yaw):
@@ -52,7 +52,7 @@ class APID():
         self.desy = y
         self.desz = z
         self.desyaw = yaw
-        print(f"(Proportional) New target = [{x}, {y}, {z}, {yaw}]")
+        # print(f"(Proportional) New target = [{x}, {y}, {z}, {yaw}]")
         self.reachedTarget = False
         self.areWeThereYet()
 
@@ -61,7 +61,7 @@ class APID():
         self.desy = desPos[1]
         self.desz = desPos[2]
         self.desyaw = desPos[3]
-        print(f"(Proportional) New target = {desPos}")
+        # print(f"(Proportional) New target = {desPos}")
         self.reachedTarget = False
         self.areWeThereYet()
 
