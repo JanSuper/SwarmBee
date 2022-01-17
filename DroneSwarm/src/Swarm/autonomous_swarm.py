@@ -20,14 +20,14 @@ def force_land():
             # Make all drones stationary
             make_drones_stationary()
             # Land all drones
-            send("land")
+            send(drones, "land")
             break
         if KeyPress.get_key("e"):
             print("Emergency landing initialized")
             # Make all drones stationary
             make_drones_stationary()
             # Stop all drones' motors immediately
-            send("emergency")
+            send(drones, "emergency")
             break
 
 
@@ -37,13 +37,12 @@ def make_drones_stationary():
         drone.send_rc([0, 0, 0, 0])
 
 
-def send(message):
+def send(receiving_drones, message):
     messages_without_wait = ['land', 'emergency']
-    print(f"Sending message: {message}")
-    for drone in drones:
-        drone.send(message)
+    for receiving_drone in receiving_drones:
+        receiving_drone.send(message)
     if message not in messages_without_wait:
-        wait()
+        wait(receiving_drones)
 
 
 def receive():
@@ -52,15 +51,24 @@ def receive():
             drone.receive()
 
 
-def wait():
-    while True:
+def wait(busy_drones):
+    start_time = time.time()
+    while time.time() - start_time < 10:
         busy = False
-        for drone in drones:
-            if drone.busy:
+        for busy_drone in busy_drones:
+            if busy_drone.busy:
                 busy = True
                 break
         if not busy:
             break
+
+    if time.time() - start_time >= 10:
+        for busy_drone in busy_drones:
+            if busy_drone.busy:
+                print(f"Drone #{busy_drone.number}: exceeded waiting time of ten seconds; possible causes: connection "
+                      f"to drone has been lost, dummy command interfered with connection")
+                busy_drone.busy = False
+
     check_error()
 
 
@@ -73,7 +81,7 @@ def check_error():
 
 def stop_program():
     make_drones_stationary()
-    send("land")
+    send(drones, "land")
     for drone in drones:
         drone.socket.close()
     exit()
@@ -83,10 +91,7 @@ def setup_drone(drone):
     # Perform takeoff
     messages = ["command", "streamoff", "streamon", "takeoff"]
     for message in messages:
-        print(f"Sending message to drone #{drone.number}: {message}")
-        drone.send(message)
-        while drone.busy:
-            pass
+        send([drone], message)
 
     # Start drone's ArUco process
     drone.aruco.start()
@@ -96,16 +101,16 @@ def setup_drone(drone):
     while initial_position is None:
         initial_position = drone.sender.recv()
     initial_position = np.rint(np.array(initial_position[:4])).astype(int)
-    print(f"Drone #{drone.number}: initial position {initial_position}")
+    # print(f"Drone #{drone.number}: initial position {initial_position}")
     drone.aruco.shutdown()
-    drone.send_no_busy("streamoff")
+    send([drone], "streamoff")
 
     if drone.number > 1:
         # For follower drones only; create initial flight path
         initial_target = leader_drone.controller.initial_position + drone.offset
         initial_flightpath = [initial_target - initial_position]
         drone.flightpath = initial_flightpath
-        print(f"Drone #{drone.number}: initial flight path {drone.flightpath}")
+        # print(f"Drone #{drone.number}: initial flight path {drone.flightpath}")
 
     # Create drone's controller
     drone.create_controller(initial_position, method)
@@ -249,7 +254,6 @@ def send_dummy_command():
                     send_dummy = drone.controller.completed_flightpath
 
                 if send_dummy:
-                    # print(f"Drone #{drone.number}: sending dummy command \"{dummy_command}\"")
                     drone.send_no_busy(dummy_command)
             previous_time = current_time
 
@@ -310,8 +314,9 @@ print("Setup done")
 
 # Restart ArUco
 for drone in drones:
-    drone.send_no_busy("streamon")
+    send([drone], "streamon")
     receiver, sender = Pipe()
+    drone.sender.close()
     drone.sender = sender
     drone.aruco = ArucoProcess(receiver, drone.udp_port, drone.number)
 

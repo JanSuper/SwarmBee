@@ -30,6 +30,7 @@ class Drone:
         self.controller = FlightPathController(self, initial_position, method=method)
 
     def send_no_busy(self, message):
+        print(f"Drone #{self.number}: sending message \"{message}\"")
         try:
             self.socket.sendto(message.encode(), ('192.168.10.1', 8889))
         except ValueError as e:
@@ -37,6 +38,7 @@ class Drone:
             print("Error sending \"" + message + "\" to drone #" + str(self.number) + ": " + str(e))
 
     def send(self, message):
+        print(f"Drone #{self.number}: sending message \"{message}\"")
         try:
             self.socket.sendto(message.encode(), ('192.168.10.1', 8889))
             self.busy = True
@@ -59,12 +61,7 @@ class Drone:
         u = np.rint(u).astype(int)
 
         command = f"rc {u[0]} {u[1]} {u[2]} {u[3]}"
-        print(f"Drone #{self.number} remote control: " + command)
-        try:
-            self.socket.sendto(command.encode(), ('192.168.10.1', 8889))
-        except ValueError as e:
-            self.error = True
-            print("Error sending \"" + command + "\" to drone #" + str(self.number) + ": " + str(e))
+        self.send_no_busy(command)
 
     def receive(self):
         try:

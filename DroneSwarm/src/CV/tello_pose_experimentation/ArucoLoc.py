@@ -189,5 +189,5 @@ class ArucoProcess(multiprocessing.Process):
         cap.release()
 
     def shutdown(self):
-        print("Shutdown initiated")
+        # print("Shutdown initiated")
         self.exit.set()
