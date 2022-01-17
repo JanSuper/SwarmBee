@@ -1,7 +1,7 @@
 import math
 import numpy as np
 
-MAX_SPEED = 25  # cm/s
+MAX_SPEED = 20  # cm/s
 ACCELERATION_RATE = 2  # cm/s^2
 
 
@@ -71,40 +71,48 @@ class Trapezoid:
 
     def calculate(self):
         for i in range(4):
-            if abs((self.target[i] - self.position[i])) > abs((2 * self.distance[i] / 3)):
-                if abs(self.velocity[i]) < MAX_SPEED:
-                    if self.target[i] - self.position[i] > 0:
-                        self.velocity[i] += ACCELERATION_RATE
-                    elif self.target[i] - self.position[i] < 0:
-                        self.velocity[i] -= ACCELERATION_RATE
-                else:
-                    if self.target[i] - self.position[i] > 0:
-                        self.velocity[i] = MAX_SPEED
-                    elif self.target[i] - self.position[i] < 0:
-                        self.velocity[i] = -MAX_SPEED
-            elif abs((self.target[i] - self.position[i])) <= abs((self.distance[i] / 3)):
-                if abs(self.position[i] - self.target[i]) > 5:
-                    if abs(self.velocity[i]) > 11:
+            if not self.reached:
+                if abs((self.target[i] - self.position[i])) > abs((2 * self.distance[i] / 3)):
+                    # print("ACCELERATING")
+                    if abs(self.velocity[i]) < MAX_SPEED:
                         if self.target[i] - self.position[i] > 0:
-                            self.velocity[i] -= ACCELERATION_RATE
-                        elif self.target[i] - self.position[i] < 0:
                             self.velocity[i] += ACCELERATION_RATE
-                    else:
-                        if self.target[i] - self.position[i] > 0:
-                            self.velocity[i] = 11
                         elif self.target[i] - self.position[i] < 0:
-                            self.velocity[i] = -11
-                else:
-                    self.is_reached[i] = True
-                    self.velocity[i] = 0
-
+                            self.velocity[i] -= ACCELERATION_RATE
+                    else:
+                        # print("THE LAURA DEBUG")
+                        if self.target[i] - self.position[i] > 0:
+                            self.velocity[i] = MAX_SPEED
+                        elif self.target[i] - self.position[i] < 0:
+                            self.velocity[i] = -MAX_SPEED
+                elif abs((self.target[i] - self.position[i])) <= abs((self.distance[i] / 3)):
+                    # print("DECELERATING")
+                    if abs(self.target[i] - self.position[i]) > 20:
+                        if abs(self.velocity[i]) > 11:
+                            if self.target[i] - self.position[i] > 0:
+                                self.velocity[i] -= ACCELERATION_RATE
+                            elif self.target[i] - self.position[i] < 0:
+                                self.velocity[i] += ACCELERATION_RATE
+                        else:
+                            if self.target[i] - self.position[i] > 0:
+                                self.velocity[i] = 11
+                            elif self.target[i] - self.position[i] < 0:
+                                self.velocity[i] = -11
+                    else:
+                        self.is_reached[i] = True
+                        self.velocity[i] = 0
+            # else:
+            #     print("CONSTANT")
+        # print('RC: ', self.velocity)
         if all(self.is_reached):
             self.reached = True
             print("(Trapezoid) Reached Target: %s" % self.target)
+        # else:
+        #     self.is_reached = [False, False, False, False]
 
         # Translation
         u = self.velocity.tolist()
-        print(u)
+        # print(u)
         yaw_radians = math.radians(self.position[3])
         vel_x = u[0] * math.cos(yaw_radians) - u[1] * math.sin(yaw_radians)
         vel_y = u[0] * math.sin(yaw_radians) + u[1] * math.cos(yaw_radians)

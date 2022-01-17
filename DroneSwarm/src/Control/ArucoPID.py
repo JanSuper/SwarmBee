@@ -5,6 +5,8 @@ import numpy as np
 class APID():
 
     def __init__(self, des, ryaw=0):
+        print(f"(Proportional) New target = {des}")
+
         self.x = 0
         self.y = 0
         self.z = 0
@@ -14,7 +16,6 @@ class APID():
         self.desy = des[1]
         self.desz = des[2]
         self.desyaw = des[3]
-        print(f"(Proportional) New target = {des}")
 
         self.ryaw = ryaw
 
@@ -69,9 +70,10 @@ class APID():
         diffY = self.desy - self.y
         diffZ = self.desz - self.z
 
-        MAX_DISTANCE = math.sqrt(75)
+        MAX_DISTANCE = math.sqrt(300)
 
-        self.reachedTarget = math.sqrt(diffX ** 2 + diffY ** 2 + diffZ ** 2) <= MAX_DISTANCE
+        if not self.reachedTarget:
+            self.reachedTarget = math.sqrt(diffX ** 2 + diffY ** 2 + diffZ ** 2) <= MAX_DISTANCE
 
     def setObstacle(self, list):
         self.obstacleFound = True
@@ -98,6 +100,10 @@ class APID():
         # print(trans)
         # if self.obstacleFound:
         #    trans = self.avoidObstacles(trans)
+        p_value = 0.5
+        trans[0] *= p_value
+        trans[1] *= p_value
+        trans[2] *= p_value
         return trans
 
     def avoidObstacles(self, trans):

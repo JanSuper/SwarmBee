@@ -88,7 +88,7 @@ class FlightPathController:
         self.position_before_interruption = None
         self.interval = interval
         self.MAX_SPEED = max_speed
-        self.obstacleList = [[200, 100]]
+        self.obstacleList = []  # [150, 50], [150, 200]
 
     # Function that checks whether it is safe for the drone to perform takeoff
     def check_safe_for_takeoff(self):
@@ -269,7 +269,8 @@ class FlightPathController:
                 u = self.proportional.getVel()
                 # if self.bluetooth is not None:
                 #     self.findObstacles()
-                return self.avoid(u)
+                u = self.avoid(u)
+                return u
             case 'Circle':
                 return self.circle.calculate_angular_velocity()
 
@@ -328,31 +329,31 @@ class FlightPathController:
                     diffX = self.current_position[0] - pos[0]
                     diffY = self.current_position[1] - pos[1]
                     dis = math.sqrt(diffX ** 2 + diffY ** 2)
-                    print(f"Distance = {dis}")
+                    # print(f"Distance = {dis}")
                     rddAngle = math.atan2(-diffX, -diffY)
                     x = u[0] * math.cos(-ry) - u[1] * math.sin(-ry)
                     y = u[0] * math.sin(-ry) + u[1] * math.cos(-ry)
                     rtAngle = math.atan2(x, y)
                     if abs(rddAngle - rtAngle) >= .5 * math.pi:
-                        print("flying in opposite direction so it's safe")
+                        # print("flying in opposite direction so it's safe")
                         pass
                     elif dis < 40:  # PANIC
-                        print("PANIC")
+                        # print("PANIC")
                         if panic:
-                            print("MULTIPLE PANIC")
+                            # print("MULTIPLE PANIC")
                             factor = (60-math.sqrt(diffX**2 + diffY**2))/math.sqrt(diffX**2 + diffY**2)
                             u[0] += diffX*factor
                             u[1] += diffY*factor
                         else:
-                            print("FIRST PANIC")
+                            # print("FIRST PANIC")
                             panic = True
                             factor = (60-math.sqrt(diffX**2 + diffY**2))/math.sqrt(diffX**2 + diffY**2)
                             x = diffX * math.cos(ry) - diffY * math.sin(ry)
                             y = diffX * math.sin(ry) + diffY * math.cos(ry)
                             u[0], u[1] = x*factor, -y*factor
-                            print(u)
+                            # print(u)
                     elif 40 <= dis <= 80 and not panic:  # curve around
-                        print("Curvy")
+                        # print("Curvy")
                         rAngle = math.atan2(diffX, diffY)
                         if rddAngle == rtAngle:
                             rAngle -= 0.05 * math.pi
@@ -360,12 +361,10 @@ class FlightPathController:
                         u[0], u[1] = x, 0
                         x = u[0] * math.cos(-rAngle + ry) - u[1] * math.sin(-rAngle + ry)
                         y = u[0] * math.sin(-rAngle + ry) + u[1] * math.cos(-rAngle + ry)
-                        # changing the yaw with a P method so that the drone keeps looking at the middle of the circle
-                        # TODO CHANGE TRAPEZOID SO THAT INTERNAL VALUES KNOW ABOUT THIS ROTATION TO FACE THE OBSTACLE
-                        # u[0], u[1], u[3] = x, y, math.degrees(rddAngle - ry)
-                        u[0], u[1] = x, y
-                        # u[3] = calculate_angular_velocity(x)
+
+                        scalar = 0.5
+                        u[0], u[1] = x * scalar, y * scalar
                     else:
-                        print("It's fine")
+                        # print("It's fine")
                         pass
                 return u

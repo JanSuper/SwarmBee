@@ -95,6 +95,14 @@ def setup_drone(drone):
     while initial_position is None:
         initial_position = drone.sender.recv()
     initial_position = np.rint(np.array(initial_position[:4])).astype(int)
+    print(f"Drone #{drone.number}: initial position {initial_position}")
+
+    if drone.number > 1:
+        # For follower drones only; create initial flight path
+        initial_target = leader_drone.controller.initial_position + drone.offset
+        initial_flightpath = [initial_target - initial_position]
+        drone.flightpath = initial_flightpath
+        print(f"Drone #{drone.number}: initial flight path {drone.flightpath}")
 
     # Create drone's controller
     drone.create_controller(initial_position, method)
@@ -129,8 +137,9 @@ def fetch_info_from_aruco():
 
                 if drone.controller.need_new_flightpath:
                     # Can only trigger for leader drone
-                    drone.controller.update_flightpath(get_aruco_flightpath(marker_id), method)
-                    drone.controller.need_new_flightpath = False
+                    # drone.controller.update_flightpath(get_aruco_flightpath(marker_id), method)  # TODO: enable
+                    # drone.controller.need_new_flightpath = False
+                    pass
 
 
 # marker groups for pre-defined flight paths
@@ -232,11 +241,11 @@ def send_dummy_command():
 
 # Control parameters
 method = "Proportional"  # Trapezoid, Proportional, Circle
-no_drones = 1
+no_drones = 2
 leader_bluetooth_address = '84:CC:A8:2F:E9:32'  # EDAD = 84:CC:A8:2F:E9:32, EDB0 = 84:CC:A8:2E:9C:B6,
 # 60FF = 9C:9C:1F:E1:B0:62
-leader_initial_flightpath = [[200, 0, 0, 0]]
-follower_offsets = [[-50, -50, 0, 0], [-50, 50, 0, 0]]
+leader_initial_flightpath = []  # [200, 0, 0, 0], [0, 150, 0, 0], [-200, 0, 0, 0], [0, -150, 0, 0]
+follower_offsets = [[-50, 0, 0, 0]]
 
 # Setup forced landing
 force_land_thread = Thread(target=force_land)
@@ -272,8 +281,7 @@ setup_drone(leader_drone)
 drone_number = 2
 while drone_number <= no_drones:
     follower_offset = np.array(follower_offsets.pop(0))
-    follower_flightpath = [[leader_drone.controller.initial_position + follower_offset]]
-    follower_drone = Drone(drone_number, leader_drone, follower_flightpath, follower_offset, interfaces_names.pop(0),
+    follower_drone = Drone(drone_number, leader_drone, None, follower_offset, interfaces_names.pop(0),
                            udp_ports.pop(0), None)
     drones.append(follower_drone)
     drone_number += 1
@@ -290,22 +298,22 @@ setup_done = True
 print("Setup done")
 
 # Get followers into formation
-leader_drone.controller.completed_flightpath = True
-start_flying()
-in_formation = False
-while not in_formation:
-    in_formation = True
-    for follower_drone in drones[1:]:
-        if not follower_drone.controller.completed_flightpath:
-            in_formation = False
-            break
-print(f"Swarm is in formation")
+# leader_drone.controller.completed_flightpath = True
+# start_flying()
+# in_formation = False
+# while not in_formation:
+#     in_formation = True
+#     for follower_drone in drones[1:]:
+#         if not follower_drone.controller.completed_flightpath:
+#             in_formation = False
+#             break
+# print(f"Swarm is in formation")
 
 # Start hand-tracking module (currently not working)
 # tracking_process = Process(target=detect_gesture, args=(drones, True, False))
 # tracking_process.start()
 
 # Start proper flight
-print(f"Start flight")
-leader_drone.controller.completed_flightpath = False
-monitor()
+# print(f"Start flight")
+# leader_drone.controller.completed_flightpath = False
+# monitor()

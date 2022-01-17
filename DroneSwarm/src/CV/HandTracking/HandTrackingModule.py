@@ -358,7 +358,7 @@ def detect_gesture(drones, swarm_integration, stationary):
 
 # Control parameters
 swarm_integration = False
-no_drones = 1
+no_drones = 3
 
 if not swarm_integration:
     # Keep only the relevant interface name(s)
