@@ -35,6 +35,8 @@ class Localiser:
         # print(realDistance)
 
         realPos = [-realDistance[0] + arucoX, realDistance[1] + arucoY]
+        camOffset = [3.5*math.cos(-radYaw), 3.5*math.sin(-radYaw)]
+        realPos[0], realPos[1] = realPos[0]-camOffset[0], realPos[1]-camOffset[1]
 
         return realPos
 
