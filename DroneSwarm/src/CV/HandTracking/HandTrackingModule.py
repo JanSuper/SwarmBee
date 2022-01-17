@@ -1,4 +1,3 @@
-import threading
 import cv2
 import mediapipe as mp
 import time
@@ -6,6 +5,7 @@ import math
 import imutils
 import socket
 
+from multiprocessing import Process
 
 class handDetector():
 
@@ -258,7 +258,7 @@ def interrupt_flight(drones):
 
 # Function that sends the same command to every connected drone
 def send(drones, command):
-    print(f"Sending {command} to drone(s)")
+    print(f"Sending \"{command}\" to drone(s)")
     for drone in drones:
         drone.sendto(command.encode(), ('192.168.10.1', 8889))
 
@@ -301,18 +301,17 @@ def send_dummy_command(drones, dummy_command):
 
 
 def detect_gesture(drones, swarm_integration, stationary):
+    swarm_integration = swarm_integration
+    if not swarm_integration:
+        dummy_process = Process(target=send_dummy_command, args=(drones, "battery?"))
+        dummy_process.start()
+    stationary = stationary
+
     # Fetch camera stream and create hand detector
     cap = cv2.VideoCapture(0)
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
     detector = handDetector()
-
-    swarm_integration = swarm_integration
-    if not swarm_integration:
-        dummy_thread = threading.Thread(target=send_dummy_command, args=(drones, "battery?"))
-        dummy_thread.daemon = True
-        dummy_thread.start()
-    stationary = stationary
 
     # Detect gestures in loop
     previous_gesture = None
@@ -359,7 +358,7 @@ def detect_gesture(drones, swarm_integration, stationary):
 
 # Control parameters
 swarm_integration = False
-no_drones = 2
+no_drones = 1
 
 if not swarm_integration:
     # Keep only the relevant interface name(s)
