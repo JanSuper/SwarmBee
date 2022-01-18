@@ -20,8 +20,9 @@ targets = []
 
 
 def export_data():
-    df = pd.DataFrame([elapsed_times, positions, targets]).T
-    df.columns = ['elapsed_time', 'position', 'target']
+    methods = [method] * len(elapsed_times)
+    df = pd.DataFrame([elapsed_times, positions, targets, methods]).T
+    df.columns = ['elapsed_time', 'position', 'target', 'method']
     df.to_csv('FlightData.csv')
 
 
