@@ -5,32 +5,18 @@ import time
 from multiprocessing import Process, Pipe
 import numpy as np
 from threading import Thread
-import pandas as pd
 
 from DroneSwarm.src.Swarm.drone import Drone
 import DroneSwarm.src.Utilities.KeyPressModule as KeyPress
 # from DroneSwarm.src.CV.HandTracking.HandTrackingModule import detect_gesture
 from DroneSwarm.src.CV.tello_pose_experimentation.ArucoLoc import ArucoProcess
 
-starting_time = time.time()
-elapsed_times = []
-positions = []
-current_target = [0, 0, 0, 0]
-targets = []
-
-
-def export_data():
-    methods = [method] * len(elapsed_times)
-    df = pd.DataFrame([elapsed_times, positions, targets, methods]).T
-    df.columns = ['elapsed_time', 'position', 'target', 'method']
-    df.to_csv('FlightData.csv')
-
 
 def force_land():
     KeyPress.init()
     while True:
         if KeyPress.get_key("s"):
-            export_data()
+            leader_drone.export_data()
             print("Soft landing initialized")
             # Make all drones stationary
             make_drones_stationary()
@@ -156,10 +142,10 @@ def fetch_info_from_aruco():
 
                 if drone.controller.need_new_position:
                     print(f"Drone #{drone.number}: new position {current_position}")
-                    elapsed_time = time.time() - starting_time
-                    elapsed_times.append(elapsed_time)
-                    positions.append(current_position.tolist())
-                    targets.append(current_target)
+                    # Testing
+                    elapsed_time = time.time() - leader_drone.starting_time
+                    leader_drone.update_test_variables(elapsed_time, current_position)
+
                     drone.controller.current_position = current_position
                     drone.controller.need_new_position = False
 
@@ -279,10 +265,10 @@ def send_dummy_command():
 
 # Control parameters
 method = "Proportional"  # Trapezoid, Proportional, Circle
-no_drones = 2
+no_drones = 1
 leader_bluetooth_address = '84:CC:A8:2F:E9:32'  # EDAD = 84:CC:A8:2F:E9:32, EDB0 = 84:CC:A8:2E:9C:B6,
 # 60FF = 9C:9C:1F:E1:B0:62
-leader_initial_flightpath = [[100, 0, 0, 0]]  # [200, 0, 0, 0], [0, 150, 0, 0], [-200, 0, 0, 0], [0, -150, 0, 0]
+leader_initial_flightpath = [[100, 0, 0, 0], [0, -100, 0, 0], [-100, 0, 0, 0], [0, 100, 0, 0]]
 follower_offsets = [[-100, 0, 0, 0]]
 
 # Setup forced landing
@@ -367,5 +353,6 @@ print(f"Swarm is in formation")
 
 # Start proper flight
 print(f"Start flight")
+leader_drone.starting_time = time.time()
 leader_drone.controller.completed_flightpath = False
 monitor()

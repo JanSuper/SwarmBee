@@ -3,7 +3,6 @@ import numpy as np
 import math
 
 from DroneSwarm.src.Control.Trapezoid import Trapezoid
-from DroneSwarm.src.Swarm import autonomous_swarm
 from DroneSwarm.src.Utilities.tello_bluetooth_receiver import BackgroundBluetoothSensorRead
 from DroneSwarm.src.Control.ArucoPID import APID
 from DroneSwarm.src.Control.Circle import Circle
@@ -63,7 +62,7 @@ class FlightPathController:
             self.completed_flightpath = True
 
         print(f"Drone #{self.drone.number}: new target {initial_target}")
-        autonomous_swarm.current_target = initial_target.tolist()
+        drone.current_target = initial_target.tolist()
         match method:
             case 'Trapezoid':
                 self.trapezoid = Trapezoid()
@@ -106,7 +105,7 @@ class FlightPathController:
         self.flightpath = flightpath
         next_target = self.current_position + np.array(self.flightpath.pop(0))
         print(f"Drone #{self.drone.number}: new target {next_target}")
-        autonomous_swarm.current_target = next_target.tolist()
+        self.drone.current_target = next_target.tolist()
         match method:
             case 'Trapezoid':
                 self.trapezoid.set_target(next_target)
@@ -163,7 +162,7 @@ class FlightPathController:
                                 # Flightpath contains at least one more target; update drone's target
                                 new_target = self.current_position + np.array(self.flightpath.pop(0))
                                 print(f"Drone #{self.drone.number}: new target {new_target}")
-                                autonomous_swarm.current_target = new_target.tolist()
+                                self.drone.current_target = new_target.tolist()
                                 self.trapezoid.set_target(new_target)
                                 calculate_u = True
                             else:
@@ -203,7 +202,7 @@ class FlightPathController:
                                 # Flightpath contains at least one more target; update drone's target
                                 new_target = self.current_position + np.array(self.flightpath.pop(0))
                                 print(f"Drone #{self.drone.number}: new target {new_target}")
-                                autonomous_swarm.current_target = new_target.tolist()
+                                self.drone.current_target = new_target.tolist()
                                 self.proportional.setDes(new_target)
                                 calculate_u = True
                             else:

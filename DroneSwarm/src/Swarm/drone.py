@@ -1,7 +1,8 @@
 import math
 import socket
 import numpy as np
-from multiprocessing import Pipe, Process
+import pandas as pd
+from multiprocessing import Pipe
 
 from DroneSwarm.src.Control.FlightPathController import FlightPathController
 from DroneSwarm.src.CV.tello_pose_experimentation.ArucoLoc import ArucoProcess
@@ -24,9 +25,32 @@ class Drone:
         self.bt_address = bt_address
         self.busy = False
         self.error = False
+        self.method = None
         self.controller = None
 
+        # Testing variables
+        self.starting_time = None
+        self.elapsed_times = []
+        self.positions = []
+        self.current_target = [0, 0, 0, 0]
+        self.targets = []
+
+    def update_test_variables(self, elapsed_time, current_position):
+        self.elapsed_times.append(elapsed_time)
+        self.positions.append(current_position.tolist())
+        self.targets.append(self.current_target)
+
+    def export_data(self):
+        methods = [self.method] * len(self.elapsed_times)
+        df = pd.DataFrame([self.elapsed_times,
+                           self.positions,
+                           self.targets,
+                           methods]).T
+        df.columns = ['elapsed_time', 'position', 'target', 'method']
+        df.to_csv('FlightData.csv')
+
     def create_controller(self, initial_position, method):
+        self.method = method
         self.controller = FlightPathController(self, initial_position, method=method)
 
     def send_no_busy(self, message):
