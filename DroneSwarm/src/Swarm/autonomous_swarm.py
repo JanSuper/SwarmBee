@@ -103,8 +103,8 @@ def setup_drone(drone):
         initial_position = drone.sender.recv()
     initial_position = np.rint(np.array(initial_position[:4])).astype(int)
     # print(f"Drone #{drone.number}: initial position {initial_position}")
-    drone.aruco.shutdown()
-    send([drone], "streamoff")
+    # drone.aruco.shutdown()
+    # send([drone], "streamoff")
 
     if drone.number > 1:
         # For follower drones only; create initial flight path
@@ -318,18 +318,18 @@ setup_done = True
 print("Setup done")
 
 # Restart ArUco
-for drone in drones:
-    send([drone], "streamon")
-    receiver, sender = Pipe()
-    drone.sender.close()
-    drone.sender = sender
-    drone.aruco = ArucoProcess(receiver, drone.udp_port, drone.number)
-
-for drone in drones:
-    drone.aruco.start()
-    new_position = None
-    while new_position is None:
-        new_position = drone.sender.recv()
+# for drone in drones:
+#     send([drone], "streamon")
+#     receiver, sender = Pipe()
+#     drone.sender.close()
+#     drone.sender = sender
+#     drone.aruco = ArucoProcess(receiver, drone.udp_port, drone.number)
+#
+# for drone in drones:
+#     drone.aruco.start()
+#     new_position = None
+#     while new_position is None:
+#         new_position = drone.sender.recv()
 
 position_thread = Thread(target=fetch_info_from_aruco)
 position_thread.daemon = True

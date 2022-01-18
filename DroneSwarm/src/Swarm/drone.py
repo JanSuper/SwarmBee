@@ -2,10 +2,11 @@ import math
 import socket
 import numpy as np
 import pandas as pd
-from multiprocessing import Pipe
+from multiprocessing import Pipe, Process
 
 from DroneSwarm.src.Control.FlightPathController import FlightPathController
-from DroneSwarm.src.CV.tello_pose_experimentation.ArucoLoc import ArucoProcess
+# from DroneSwarm.src.CV.tello_pose_experimentation.ArucoLoc import ArucoProcess
+from DroneSwarm.src.CV.tello_pose_experimentation.ArucoLoc import detect
 
 
 class Drone:
@@ -21,7 +22,8 @@ class Drone:
         receiver, sender = Pipe()
         self.sender = sender
         self.udp_port = udp_port
-        self.aruco = ArucoProcess(receiver, udp_port, number)
+        # self.aruco = ArucoProcess(receiver, udp_port, number)
+        self.aruco = Process(target=detect, args=(receiver, udp_port, number))
         self.bt_address = bt_address
         self.busy = False
         self.error = False
