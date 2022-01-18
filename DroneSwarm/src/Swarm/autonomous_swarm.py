@@ -12,14 +12,16 @@ import DroneSwarm.src.Utilities.KeyPressModule as KeyPress
 # from DroneSwarm.src.CV.HandTracking.HandTrackingModule import detect_gesture
 from DroneSwarm.src.CV.tello_pose_experimentation.ArucoLoc import ArucoProcess
 
-current_target = [0, 0, 0, 0]
+starting_time = time.time()
+elapsed_times = []
 positions = []
+current_target = [0, 0, 0, 0]
 targets = []
 
 
 def export_data():
-    df = pd.DataFrame([positions, targets]).T
-    df.columns = ['position', 'target']
+    df = pd.DataFrame([elapsed_times, positions, targets]).T
+    df.columns = ['elapsed_time', 'position', 'target']
     df.to_csv('FlightData.csv')
 
 
@@ -153,6 +155,8 @@ def fetch_info_from_aruco():
 
                 if drone.controller.need_new_position:
                     print(f"Drone #{drone.number}: new position {current_position}")
+                    elapsed_time = time.time() - starting_time
+                    elapsed_times.append(elapsed_time)
                     positions.append(current_position.tolist())
                     targets.append(current_target)
                     drone.controller.current_position = current_position
