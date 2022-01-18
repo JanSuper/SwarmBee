@@ -2,14 +2,14 @@
 # Source: https://github.com/dbaldwin/DroneBlocks-Tello-Python/blob/master/lesson3-udp-send-receive/UDPSendReceive.py
 import math
 import time
-from multiprocessing import Process, Pipe
+# from multiprocessing import Process, Pipe
 import numpy as np
 from threading import Thread
 
 from DroneSwarm.src.Swarm.drone import Drone
 import DroneSwarm.src.Utilities.KeyPressModule as KeyPress
 # from DroneSwarm.src.CV.HandTracking.HandTrackingModule import detect_gesture
-from DroneSwarm.src.CV.tello_pose_experimentation.ArucoLoc import ArucoProcess
+# from DroneSwarm.src.CV.tello_pose_experimentation.ArucoLoc import ArucoProcess
 
 
 def force_land():
