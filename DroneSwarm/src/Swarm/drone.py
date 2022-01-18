@@ -49,7 +49,7 @@ class Drone:
                            self.targets,
                            methods]).T
         df.columns = ['elapsed_time', 'position', 'target', 'method']
-        df.to_csv('FlightData.csv')
+        df.to_csv(f'FlightData{self.method}.csv')
 
     def create_controller(self, initial_position, method):
         self.method = method
