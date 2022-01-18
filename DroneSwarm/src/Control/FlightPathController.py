@@ -90,7 +90,7 @@ class FlightPathController:
         self.position_before_interruption = None
         self.interval = interval
         self.MAX_SPEED = max_speed
-        self.obstacleList = []  # [150, 50], [150, 200]
+        self.obstacleList = [[200,100]]  # [150, 50], [150, 200]
         self.last_velocity = None
 
     # Function that checks whether it is safe for the drone to perform takeoff
@@ -361,8 +361,10 @@ class FlightPathController:
                             # print("FIRST PANIC")
                             panic = True
                             factor = (60-math.sqrt(diffX**2 + diffY**2))/math.sqrt(diffX**2 + diffY**2)
+                            print(factor)
                             x = diffX * math.cos(ry) - diffY * math.sin(ry)
                             y = diffX * math.sin(ry) + diffY * math.cos(ry)
+                            print([x,y])
                             u[0], u[1] = x*factor, -y*factor
                             # print(u)
                     elif 40 <= dis <= 80 and not panic:  # curve around

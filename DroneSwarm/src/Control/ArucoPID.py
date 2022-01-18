@@ -121,7 +121,7 @@ class APID():
             x = trans[0] * math.cos(-self.ryaw) - trans[1] * math.sin(-self.ryaw)
             y = trans[0] * math.sin(-self.ryaw) + trans[1] * math.cos(-self.ryaw)
             rtAngle = math.atan2(x, y)
-            if dis < 20:  # PANIC
+            if dis < 40:  # PANIC
                 print("PANIC")
                 if panic:
                     print("MULTIPLE PANIC")
@@ -137,7 +137,7 @@ class APID():
             elif (abs(rddAngle - rtAngle)) >= (.5 * math.pi):
                 print("flying in opposite direction so it's safe")
                 pass
-            elif 20 <= dis <= 60 and not panic:  # curve around
+            elif 40 <= dis <= 80 and not panic:  # curve around
                 print("Curvy")
                 rAngle = math.atan2(diffX, diffY)
                 if rddAngle == rtAngle:
@@ -182,9 +182,9 @@ class APID():
 
 
 def main():
-    pid = APID([100, 0, 0, 0])
-    #pid.setObstacle([[0,20]])
-    pid.realUpdate([0, 0, 0, 90])
+    pid = APID([388, 108, 93,  91])
+    pid.setObstacle([[200,100]])
+    pid.realUpdate([189, 108,  94, 91])
     print(pid.getVel())
 
 

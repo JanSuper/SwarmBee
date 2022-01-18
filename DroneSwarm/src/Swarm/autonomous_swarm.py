@@ -264,11 +264,11 @@ def send_dummy_command():
 
 
 # Control parameters
-method = "Trapezoid"  # Trapezoid, Proportional, Circle
+method = "Proportional"  # Trapezoid, Proportional, Circle
 no_drones = 1
 leader_bluetooth_address = '84:CC:A8:2F:E9:32'  # EDAD = 84:CC:A8:2F:E9:32, EDB0 = 84:CC:A8:2E:9C:B6,
 # 60FF = 9C:9C:1F:E1:B0:62
-leader_initial_flightpath = [[100, 0, 0, 0], [0, -100, 0, 0], [-100, 0, 0, 0], [0, 100, 0, 0]]
+leader_initial_flightpath = [[200, 0, 0, 0]]
 follower_offsets = [[-100, 0, 0, 0]]
 
 # Setup forced landing
