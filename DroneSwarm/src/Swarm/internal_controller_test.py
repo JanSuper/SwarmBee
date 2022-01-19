@@ -29,7 +29,6 @@ def fetch_info_from_aruco(sending_drone):
     previous_time = time.time()
     while True:
         received = sending_drone.sender.recv()
-        print(received)
         if received is not None:
             if not drone.start:
                 drone.start = True
@@ -39,6 +38,7 @@ def fetch_info_from_aruco(sending_drone):
                     elapsed_time = current_time - drone.starting_time
                     drone.elapsed_times.append(elapsed_time)
                     drone.current_position = np.rint(np.array(received[:4])).astype(int).tolist()
+                    print(f"Drone #{drone.number}: current position {drone.current_position}")
                     drone.positions.append(drone.current_position)
                     drone.targets.append(drone.current_target)
                     previous_time = current_time
@@ -100,6 +100,8 @@ initial_position = np.rint(np.array(initial_position[:4])).astype(int)
 print(f"Drone #{drone.number}: initial position {initial_position}")
 
 position_thread = Thread(target=fetch_info_from_aruco, args=(drone,))
+position_thread.daemon = True
+position_thread.start()
 
 while not drone.start:
     pass
@@ -109,6 +111,7 @@ fly_commands = ["forward 100", "right 100", "back 100", "left 100"]
 flight_path = [[100, 0, 0, 0], [0, -100, 0, 0], [-100, 0, 0, 0], [0, 100, 0, 0]]
 for fly_command in fly_commands:
     drone.current_target = (np.array(drone.current_position) + np.array(flight_path.pop(0))).tolist()
+    print(f"Drone #{drone.number}: new target {drone.current_target}")
     if drone.dummy:
         drone.dummy = False
     send(drone, fly_command)
