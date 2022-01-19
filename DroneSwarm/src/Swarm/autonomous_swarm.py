@@ -151,8 +151,8 @@ def fetch_info_from_aruco():
 
                 if drone.controller.need_new_flightpath:
                     # Can only trigger for leader drone
-                    # drone.controller.update_flightpath(get_aruco_flightpath(marker_id), method)  # TODO: enable
-                    # drone.controller.need_new_flightpath = False
+                    drone.controller.update_flightpath(get_aruco_flightpath(marker_id), method)
+                    drone.controller.need_new_flightpath = False
                     pass
 
 
@@ -277,9 +277,9 @@ force_land_thread.daemon = True
 force_land_thread.start()
 
 # WARNING: Make sure leader drone connects to interface_names[0]
-udp_ports = [11111, 11113, 11115]
+udp_ports = [11111, 11113]
 udp_ports = udp_ports[:no_drones]
-interface_names = ['wlxd03745f79670', 'wlxd0374572e205', 'wlx6c5ab04a495e']
+interface_names = ['wlxd03745f79670', 'wlxd0374572e205']
 interfaces_names = interface_names[:no_drones]
 
 drones = []
@@ -352,7 +352,10 @@ print(f"Swarm is in formation")
 # tracking_process.start()
 
 # Start proper flight
-print(f"Start flight")
-leader_drone.starting_time = time.time()
-leader_drone.controller.completed_flightpath = False
-monitor()
+if no_drones == 1:
+    print(f"Start flight")
+    leader_drone.starting_time = time.time()
+    leader_drone.controller.completed_flightpath = False
+    monitor()
+
+stop_program()
