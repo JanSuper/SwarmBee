@@ -48,14 +48,6 @@ def force_land(receiving_drone):
     KeyPress.init()
     while True:
         if KeyPress.get_key("s"):
-            methods = ["Internal"] * len(receiving_drone.elapsed_times)
-            df = pd.DataFrame([receiving_drone.elapsed_times,
-                               receiving_drone.positions,
-                               receiving_drone.targets,
-                               methods]).T
-            df.columns = ['elapsed_time', 'position', 'target', 'method']
-            df.to_csv(f'FlightDataInternal.csv')
-
             print("Soft landing initialized")
             # Land all drones
             send(receiving_drone, "land")
@@ -115,3 +107,12 @@ for fly_command in fly_commands:
     if drone.dummy:
         drone.dummy = False
     send(drone, fly_command)
+
+methods = ["Internal"] * len(drone.elapsed_times)
+df = pd.DataFrame([drone.elapsed_times,
+                   drone.positions,
+                   drone.targets,
+                   methods]).T
+df.columns = ['elapsed_time', 'position', 'target', 'method']
+df.to_csv(f'FlightDataInternal.csv')
+send(drone, "land")
