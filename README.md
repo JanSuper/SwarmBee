@@ -11,8 +11,8 @@ There are two runnable scripts:
 Swarm Formation:
 - Set no_drones on line 268 to 2
 - Modify the list of follower offsets on line 272 at your will
-- Run DroneSwarm/src/Swarm/adapter_configuration.sh
 - Update the list of WiFi interface names on line 282 to match yours
+- Modify DroneSwarm/src/Swarm/adapter_configuration.sh by replacing the WiFi interface names with yours
 - Run the program
 - Press "s" (soft landing) or "e" (emergency landing) on your keyboard to stop the program
 
