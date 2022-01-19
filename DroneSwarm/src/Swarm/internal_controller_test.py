@@ -29,9 +29,9 @@ def fetch_info_from_aruco(sending_drone):
     previous_time = time.time()
     while True:
         received = sending_drone.sender.recv()
+        print(received)
         if received is not None:
             if not drone.start:
-                print("Continue")
                 drone.start = True
             if not drone.dummy:
                 current_time = time.time()
