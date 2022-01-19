@@ -31,8 +31,11 @@ class Drone:
         self.controller = None
 
         # Testing variables
+        self.dummy = False
+        self.start = False
         self.starting_time = None
         self.elapsed_times = []
+        self.current_position = [0, 0, 0, 0]
         self.positions = []
         self.current_target = [0, 0, 0, 0]
         self.targets = []
