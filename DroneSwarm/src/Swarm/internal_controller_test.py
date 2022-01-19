@@ -31,6 +31,7 @@ def fetch_info_from_aruco(sending_drone):
         received = sending_drone.sender.recv()
         if received is not None:
             if not drone.start:
+                print("Continue")
                 drone.start = True
             if not drone.dummy:
                 current_time = time.time()
