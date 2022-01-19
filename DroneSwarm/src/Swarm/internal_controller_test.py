@@ -102,12 +102,11 @@ drone.setsockopt(socket.SOL_SOCKET, 25, 'wlxd03745f79670'.encode())
 drone.bind(('', 9000))
 busy = False
 
-
 receive_thread = Thread(target=receive, args=(drone,))
 receive_thread.daemon = True
 receive_thread.start()
 
-force_land_thread = Thread(target=force_land, args=())
+force_land_thread = Thread(target=force_land, args=(drone,))
 force_land_thread.daemon = True
 force_land_thread.start()
 
