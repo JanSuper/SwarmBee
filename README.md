@@ -1,15 +1,31 @@
 # How to run the code
-Before doing anything, please install the required packages from the requirements.txt file.
+Requirements:
+- A Linux environment
+- One WiFi adapter for each connected drone
+- Packages from requirements.txt 
 
-As the modules have not been merged yet, there is no single file that runs everything.
+There are two runnable scripts:
+- DroneSwarm/src/Swarm/autonomous_swarm.py contains the Swarm Formation and Autonomous Singular Drone Flight
+- DroneSwarm/src/CV/HandTracking/HandTrackingModule.py contains the Gesture Recognition
 
-Instead you can run each module individually:
-1. Flight path controller: control/FlightPathController.py
-2. ArUco detection: CV/tello_pose_experimentation/detect_position_from_marker.py
-3. Swarm flight: Swarm/simple_swarm.py
+Swarm Formation:
+- Set no_drones on line 268 to 2
+- Modify the list of follower offsets on line 272 at your will
+- Update the list of WiFi interface names on line 282 to match yours
+- Make sure the leader drone connects to interface_names[0]
+- Modify DroneSwarm/src/Swarm/adapter_configuration.sh by replacing the WiFi interface names with yours
+- Run the program
+- Press "s" (soft landing) or "e" (emergency landing) on your keyboard to stop the program
 
-To change the target position of the flight path controller, the numpy array on line 66 in 'control/FlightPathController.py' must be edited. The format is [x, y, z, yaw].
+Autonomous Singular Drone Flight:
+- Set no_drones on line 268 to 1
+- Modify the list of waypoints on line 271 at your will
+- Update the list of WiFi interface names on line 282 to match yours
+- Make sure the drone connects to interface_names[0]
+- Run the program
+- Press "s" (soft landing) or "e" (emergency landing) on your keyboard to stop the program
 
-To change the set of commands that is executed by the swarm, the list on line 107 in 'Swarm/simple_swarm.py' must be edited. Any command from the Tello SDK works. An overview of all commands can be found here: https://dl-cdn.ryzerobotics.com/downloads/Tello/Tello%20SDK%202.0%20User%20Guide.pdf
-
-The code in 'Swarm/simple_swarm.py' is made to work with two drones, so two WiFi-adapters are required. You must make sure that the interface names on lines 16 and 18 in 'Swarm/simple_swarm.py' match those of your WiFi-adapters. Simply replace 'wlxd0374572e205' and 'wlxd03745f79670' with what your Terminal outputs. We recommend using Linux, as it makes it easy to find WiFi interface names.
+Gesture Recognition:
+- Set no_drones on line 361 to whatever you desire
+- Update the list of WiFi interface names on line 365 to match yours
+- Run the program
