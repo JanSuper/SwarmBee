@@ -88,8 +88,8 @@ drone.aruco.start()
 initial_position = None
 while initial_position is None:
     initial_position = drone.sender.recv()
-initial_position = np.rint(np.array(initial_position[:4])).astype(int)
-print(f"Drone #{drone.number}: initial position {initial_position}")
+drone.current_position = np.rint(np.array(initial_position[:4])).astype(int)
+print(f"Drone #{drone.number}: initial position {drone.current_position}")
 
 position_thread = Thread(target=fetch_info_from_aruco, args=(drone,))
 position_thread.daemon = True
